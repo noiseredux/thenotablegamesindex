@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.1.0</title>
+    <title>The Notable Games Index | v3.1.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.0.9 &nbsp;·&nbsp; An Archive Of Hype</p>
+            <p class="version-tag">Version 3.1.1 &nbsp;·&nbsp; An Archive Of Hype</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -51,9 +51,9 @@
     </div>
 
     <script>
+        // Connect to your updated v3.1.1 Google Script App URL
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec';
         
-        // Purified Array: TurboGrafx-16 (86) has been removed.
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
         
         const PLATFORM_NAMES = { 
@@ -80,11 +80,20 @@
         function displayGames(gamesList) {
             const content = document.getElementById('content');
             
+            // 1. Lineage Platform Filter
             let filtered = gamesList.filter(game => 
                 game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
             );
 
-            filtered.sort((a, b) => b.total_score - a.total_score);
+            // 2. DYNAMIC EXPERIMENTAL FORMULA: Reviews + Integer Popularity
+            filtered.forEach(game => {
+                const popPoints = Math.round(game.popularity || 0);
+                game.calculated_mindshare = game.reviews + popPoints;
+                game.display_pop = popPoints;
+            });
+
+            // 3. SORT: Order by our experimental combined score
+            filtered.sort((a, b) => b.calculated_mindshare - a.calculated_mindshare);
 
             if (!filtered.length) { 
                 content.innerHTML = '<div class="loading">No released hype found for this year.</div>'; 
@@ -108,9 +117,9 @@
                     <div class="game-info">
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
-    Mindshare: <span class="engagement-value">${game.total_score}</span> 
-    <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(${game.reviews}r + ${game.hype}p)</span>
-</div>
+                            Mindshare: <span class="engagement-value">${game.calculated_mindshare}</span> 
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(${game.reviews}r + ${game.display_pop}p)</span>
+                        </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
                         </div>
