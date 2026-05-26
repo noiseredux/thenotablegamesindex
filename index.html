@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.5.1 (Bayesian Calibration)</title>
+    <title>The Notable Games Index | v3.5.2 (Data Alignment)</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.5.1 &nbsp;·&nbsp; Bayesian Variable Realignment</p>
+            <p class="version-tag">Version 3.5.2 &nbsp;·&nbsp; Bayesian Extraction Validation</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -83,37 +83,41 @@
                 game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
             );
 
-            // BAYESIAN EQUILIBRIUM PARAMETERS
-            const MIN_TRUST_REVIEWS = 40;  // Threshold weight
-            const CHART_GRAVITY_CENTER = 70.0; // Separate anchor midpoint to break mathematical flatlines
+            const MIN_TRUST_REVIEWS = 40;  
+            const CHART_GRAVITY_CENTER = 70.0; 
 
             filtered.forEach(game => {
-                const rawCritic = Number(game.aggregated_rating);
-                const rawUser = Number(game.rating);
-                const reviews = Number(game.reviews || 0);
+                // Defensive extraction mapping to account for variations in incoming data models
+                const rawCritic = game.aggregated_rating ? Number(game.aggregated_rating) : NaN;
+                const rawUser = game.rating ? Number(game.rating) : NaN;
+                const reviews = game.reviews ? Number(game.reviews) : 0;
                 
                 const hasCritic = !isNaN(rawCritic) && rawCritic > 0;
                 const hasUser = !isNaN(rawUser) && rawUser > 0;
                 
                 let assignedQuality = 70.0;
+                let dataStatus = "FALLBACK";
                 
                 if (hasCritic && hasUser) {
                     assignedQuality = (rawCritic * 0.70) + (rawUser * 0.30);
+                    dataStatus = "VERIFIED";
                 } else if (hasCritic) {
                     assignedQuality = rawCritic;
+                    dataStatus = "CRITIC_ONLY";
                 } else if (hasUser) {
                     assignedQuality = rawUser;
+                    dataStatus = "USER_ONLY";
                 } else {
-                    // Decoupled dynamic profile tracking to make sure unmapped years retain score variance
+                    // Fallback profile metric calculation
                     assignedQuality = Math.min(96, 74 + (reviews / 5));
                 }
                 
-                // Bayesian calculation utilizing an un-linked tracking anchor
                 const bayesianScore = ((reviews * assignedQuality) + (MIN_TRUST_REVIEWS * CHART_GRAVITY_CENTER)) / (reviews + MIN_TRUST_REVIEWS);
                 
                 game.raw_mindshare = bayesianScore;
                 game.debug_quality = assignedQuality.toFixed(1);
                 game.debug_confidence = Math.min(100, (reviews / MIN_TRUST_REVIEWS) * 100).toFixed(0);
+                game.debug_status = dataStatus;
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
@@ -141,7 +145,7 @@
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
                             Index Rating: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}%</span>
-                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Assigned Score: ${game.debug_quality}% | Footprint Confidence: ${game.debug_confidence}%)</span>
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Quality: ${game.debug_quality}% [${game.debug_status}] | Trust: ${game.debug_confidence}%)</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -155,7 +159,7 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Calibrating Confidence Parameters...</div>';
+            content.innerHTML = '<div class="loading">Validating Bayesian Data Stream...</div>';
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
                 const data = await response.json();
