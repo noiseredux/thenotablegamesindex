@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.1.9</title>
+    <title>The Notable Games Index | v3.2.0 (Quality Anchor Experiment)</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.1.9 &nbsp;·&nbsp; Player Volume Optimization</p>
+            <p class="version-tag">Version 3.2.0 &nbsp;·&nbsp; Hype-Weighted Quality Experiment</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -83,15 +83,24 @@
                 game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
             );
 
-            // THE 10x / 2x CALIBRATION: Review footprint completely dictates ranking over marketing tracking
+            // V3.2.0 CORE EXPERIMENT: Quality-first anchor multiplied by a scaling hype curve
             filtered.forEach(game => {
-                game.raw_mindshare = (game.reviews * 10) + (game.hype * 2);
+                // Fallbacks to handle empty database metrics gracefully
+                const critic = game.rating || 75; 
+                const user = game.aggregated_rating || game.rating || 75;
+                
+                // 1. Establish composite score baseline
+                const baseQuality = (critic * 0.7) + (user * 0.3);
+                
+                // 2. Apply Hype as a scalable coefficient multiplier
+                game.raw_mindshare = baseQuality * (1 + (game.hype / 100));
+                game.debug_quality = baseQuality.toFixed(1);
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
 
             if (!filtered.length) { 
-                content.innerHTML = '<div class="loading">No released hype found for this year.</div>'; 
+                content.innerHTML = '<div class="loading">No records found for this year.</div>'; 
                 return; 
             }
 
@@ -107,7 +116,6 @@
                 card.target = '_blank';
                 
                 const percentageScore = maxScore > 0 ? ((game.raw_mindshare / maxScore) * 100).toFixed(1) : 0;
-                
                 const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
                 
                 card.innerHTML = `
@@ -117,7 +125,7 @@
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
                             Mindshare: <span class="engagement-value">${percentageScore}%</span> 
-                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(${game.reviews}r × 10 + ${game.hype}h × 2 = ${game.raw_mindshare})</span>
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Quality: ${game.debug_quality} × Hype Multiplier: ${(1 + (game.hype/100)).toFixed(2)}x)</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -131,7 +139,7 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Gathering the Hype...</div>';
+            content.innerHTML = '<div class="loading">Analyzing Cultural Quality...</div>';
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
                 const data = await response.json();
