@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.3.0 (Pure Score Anchor)</title>
+    <title>The Notable Games Index | v3.4.0 (Back to Basics)</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.3.0 &nbsp;·&nbsp; Pure Score Anchor Experiment</p>
+            <p class="version-tag">Version 3.4.0 &nbsp;·&nbsp; Volumetric Quality Reset (No Hype)</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -103,12 +103,13 @@
                     qualityPercentage = Math.min(98, 75 + (Number(game.reviews || 0) / 4));
                 }
                 
-                const hypeNudge = Number(game.hype || 0) / 10;
+                const revs = Number(game.reviews || 0);
+                const volumeBonus = revs / 2;
                 
-                // V3.3.0 CORE SIMPLICITY: Pure quality anchor score plus a subtle hype baseline nudge
-                game.raw_mindshare = qualityPercentage + hypeNudge;
+                // V3.4.0 PURE MATRIX: Baseline quality percentage plus linear review volume scaling
+                game.raw_mindshare = qualityPercentage + volumeBonus;
                 game.debug_quality = qualityPercentage.toFixed(1);
-                game.debug_nudge = hypeNudge.toFixed(1);
+                game.debug_volume = volumeBonus.toFixed(1);
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
@@ -128,7 +129,6 @@
                 card.href = `https://www.igdb.com/games/${game.slug}`;
                 card.target = '_blank';
                 
-                const percentageScore = maxScore > 0 ? ((game.raw_mindshare / maxScore) * 100).toFixed(1) : 0;
                 const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
                 
                 card.innerHTML = `
@@ -137,8 +137,8 @@
                     <div class="game-info">
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
-                            Index Value: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}</span>
-                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Quality: ${game.debug_quality} + Hype Nudge: +${game.debug_nudge})</span>
+                            Index Score: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}</span>
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Quality: ${game.debug_quality}% + Vol Bonus: +${game.debug_volume})</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -152,7 +152,7 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Aligning Score Baselines...</div>';
+            content.innerHTML = '<div class="loading">Running Core Baseline Matrix...</div>';
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
                 const data = await response.json();
