@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.2.0 (Quality Anchor Experiment)</title>
+    <title>The Notable Games Index | v3.2.1 (Volume-Anchored Quality)</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.2.0 &nbsp;·&nbsp; Hype-Weighted Quality Experiment</p>
+            <p class="version-tag">Version 3.2.1 &nbsp;·&nbsp; Volume-Anchored Confidence Scaling</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -83,18 +83,23 @@
                 game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
             );
 
-            // V3.2.0 CORE EXPERIMENT: Quality-first anchor multiplied by a scaling hype curve
+            // V3.2.1 REVISED EXPERIMENT: Blending Volume + Quality before applying the Hype Multiplier
             filtered.forEach(game => {
-                // Fallbacks to handle empty database metrics gracefully
-                const critic = game.rating || 75; 
-                const user = game.aggregated_rating || game.rating || 75;
+                const critic = game.rating || 72; 
+                const user = game.aggregated_rating || game.rating || 72;
                 
-                // 1. Establish composite score baseline
-                const baseQuality = (critic * 0.7) + (user * 0.3);
+                // 1. Calculate base percentage score
+                const qualityPercentage = (critic * 0.7) + (user * 0.3);
                 
-                // 2. Apply Hype as a scalable coefficient multiplier
-                game.raw_mindshare = baseQuality * (1 + (game.hype / 100));
-                game.debug_quality = baseQuality.toFixed(1);
+                // 2. Volume Confidence Factor: Obscure games with high scores but low reviews get penalized
+                const volumeConfidence = (game.reviews * 10);
+                
+                // 3. Formulate the core base score anchor
+                const baseScore = (qualityPercentage * 2) + volumeConfidence;
+                
+                // 4. Fire the Hype modifier
+                game.raw_mindshare = baseScore * (1 + (game.hype / 100));
+                game.debug_quality = qualityPercentage.toFixed(1);
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
@@ -125,7 +130,7 @@
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
                             Mindshare: <span class="engagement-value">${percentageScore}%</span> 
-                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Quality: ${game.debug_quality} × Hype Multiplier: ${(1 + (game.hype/100)).toFixed(2)}x)</span>
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Quality: ${game.debug_quality}% | Vol: +${game.reviews * 10} | Hype: ${(1 + (game.hype/100)).toFixed(2)}x)</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -139,7 +144,7 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Analyzing Cultural Quality...</div>';
+            content.innerHTML = '<div class="loading">Analyzing Balanced Quality...</div>';
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
                 const data = await response.json();
