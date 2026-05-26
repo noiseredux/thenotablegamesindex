@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.5.0 (Confidence Weighted)</title>
+    <title>The Notable Games Index | v3.5.1 (Bayesian Calibration)</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.5.0 &nbsp;·&nbsp; Bayesian Confidence Weighting</p>
+            <p class="version-tag">Version 3.5.1 &nbsp;·&nbsp; Bayesian Variable Realignment</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -83,34 +83,37 @@
                 game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
             );
 
-            // V3.5.0 STATISTICAL RESET: Review Count acts as a structural validation floor
-            const TRUST_THRESHOLD = 50;  // Minimum reviews to completely trust a score
-            const GLOBAL_BASELINE = 75.0; // The fallback gravitational score center
+            // BAYESIAN EQUILIBRIUM PARAMETERS
+            const MIN_TRUST_REVIEWS = 40;  // Threshold weight
+            const CHART_GRAVITY_CENTER = 70.0; // Separate anchor midpoint to break mathematical flatlines
 
             filtered.forEach(game => {
                 const rawCritic = Number(game.aggregated_rating);
                 const rawUser = Number(game.rating);
+                const reviews = Number(game.reviews || 0);
                 
                 const hasCritic = !isNaN(rawCritic) && rawCritic > 0;
                 const hasUser = !isNaN(rawUser) && rawUser > 0;
                 
-                let actualQuality = GLOBAL_BASELINE;
+                let assignedQuality = 70.0;
+                
                 if (hasCritic && hasUser) {
-                    actualQuality = (rawCritic * 0.70) + (rawUser * 0.30);
+                    assignedQuality = (rawCritic * 0.70) + (rawUser * 0.30);
                 } else if (hasCritic) {
-                    actualQuality = rawCritic;
+                    assignedQuality = rawCritic;
                 } else if (hasUser) {
-                    actualQuality = rawUser;
+                    assignedQuality = rawUser;
+                } else {
+                    // Decoupled dynamic profile tracking to make sure unmapped years retain score variance
+                    assignedQuality = Math.min(96, 74 + (reviews / 5));
                 }
-
-                const reviews = Number(game.reviews || 0);
                 
-                // Bayesian Weighted Formula Calculation
-                const weightedScore = ((reviews * actualQuality) + (TRUST_THRESHOLD * GLOBAL_BASELINE)) / (reviews + TRUST_THRESHOLD);
+                // Bayesian calculation utilizing an un-linked tracking anchor
+                const bayesianScore = ((reviews * assignedQuality) + (MIN_TRUST_REVIEWS * CHART_GRAVITY_CENTER)) / (reviews + MIN_TRUST_REVIEWS);
                 
-                game.raw_mindshare = weightedScore;
-                game.debug_quality = actualQuality.toFixed(1);
-                game.debug_trust = Math.min(100, (reviews / TRUST_THRESHOLD) * 100).toFixed(0);
+                game.raw_mindshare = bayesianScore;
+                game.debug_quality = assignedQuality.toFixed(1);
+                game.debug_confidence = Math.min(100, (reviews / MIN_TRUST_REVIEWS) * 100).toFixed(0);
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
@@ -137,8 +140,8 @@
                     <div class="game-info">
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
-                            Weighted Index Rating: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}%</span>
-                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Raw Quality: ${game.debug_quality}% | System Confidence: ${game.debug_trust}%)</span>
+                            Index Rating: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}%</span>
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Assigned Score: ${game.debug_quality}% | Footprint Confidence: ${game.debug_confidence}%)</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -152,7 +155,7 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Calculating Statistical Confidence...</div>';
+            content.innerHTML = '<div class="loading">Calibrating Confidence Parameters...</div>';
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
                 const data = await response.json();
