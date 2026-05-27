@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.0.0</p>
+            <p class="version-tag">Version 4.0.1</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -51,7 +51,6 @@
     </div>
 
     <script>
-        // Keeps your exact backend connection alive seamlessly
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec';
         
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
@@ -110,7 +109,7 @@
                     finalQualityBaseline = Math.min(95, 72 + (reviews / 4));
                 }
                 
-                // Bayesian calculation remains perfectly active behind the scenes
+                // The precise float calculation remains fully intact for backend sorting weight
                 const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * CHART_GRAVITY_CENTER)) / (reviews + activeTrustFloor);
                 game.raw_mindshare = balancedScore;
             });
@@ -133,14 +132,14 @@
                 
                 const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
                 
-                // UI Clean up: 'Index Rating' changed to 'Score:', and debugging strings removed completely
+                // V4.0.1 VISUAL TWEEAK: Wrapped game.raw_mindshare inside Math.round() to clip decimals completely
                 card.innerHTML = `
                     <div class="game-rank">#${index + 1}</div>
                     <div class="game-image-container">${game.cover ? `<img class="game-image" src="${coverUrl}" alt="${game.name} cover">` : ''}</div>
                     <div class="game-info">
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
-                            Score: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}%</span>
+                            Score: <span class="engagement-value">${Math.round(game.raw_mindshare)}%</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
