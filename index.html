@@ -21,6 +21,7 @@
         .controls { background: #e2e2ea; padding: 15px; display: flex; justify-content: center; align-items: center; gap: 15px; }
         .controls select { padding: 8px 20px; font-weight: 700; border: 2px solid var(--ps-blue); border-radius: 4px; color: var(--ps-blue); cursor: pointer; }
         .loading { text-align: center; padding: 80px; font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--ps-blue); }
+        .dev-warning { background: #fff3cd; color: #856404; padding: 12px; text-align: center; font-weight: bold; font-size: 0.9rem; border-bottom: 2px solid #ffeeba; display: none; }
         .games-grid { display: flex; flex-direction: column; gap: 12px; padding: 30px; max-width: 900px; margin: 0 auto; }
         .game-card { background: white; border: 1px solid #dcdce8; border-radius: 8px; display: flex; align-items: center; padding: 14px; gap: 20px; text-decoration: none; color: inherit; transition: all 0.2s ease; }
         .game-card:hover { transform: translateX(8px); border-color: var(--ps-blue-light); }
@@ -34,10 +35,11 @@
     </style>
 </head>
 <body>
+    <div id="devWarning" class="dev-warning">⚠️ Deployment Warning: Your Google Apps Script isn't transmitting category fields. Please redeploy it as a "New Version".</div>
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.5.0</p>
+            <p class="version-tag">Version 4.5.1</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -78,15 +80,30 @@
 
         function displayGames(gamesList) {
             const content = document.getElementById('content');
+            const warningBanner = document.getElementById('devWarning');
             
-            // V4.5.0 FRONTEND FILTER: Sledgehammer handles the data isolation safely inside browser memory
+            // Check if the backend failed to deliver category markers
+            const missingCategoryData = gamesList.length > 0 && !gamesList.some(g => g.category !== undefined);
+            warningBanner.style.display = missingCategoryData ? 'block' : 'none';
+
             let filtered = gamesList.filter(game => {
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
-                // Drops any content explicitly marked as DLC, Expansion, Bundle, Mod, Remake, Remaster, Port, etc.
-                if (game.category !== 0) return false;
+                // 1. Core Category Filter (Main Games = 0 or undefined if IGDB drops field on defaults)
+                const categoryNum = game.category !== undefined ? Number(game.category) : 0;
+                if (categoryNum !== 0) return false;
 
+                // 2. Client-Side Substring Filter (Protects the list if data points are mislabeled or cached)
+                const titleLower = game.name.toLowerCase();
+                if (titleLower.includes('hearts of stone') || 
+                    titleLower.includes('blood and wine') || 
+                    titleLower.includes('expansion pack') || 
+                    titleLower.includes('expansion pass')) {
+                    return false;
+                }
+
+                // 3. Keyword Safety Filter
                 if (game.keywords && game.keywords.length > 0) {
                     const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial');
                     if (isFauxContent) return false; 
