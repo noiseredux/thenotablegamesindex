@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index | v3.6.0 (Review-Weighted Restoration)</title>
+    <title>The Notable Games Index | v3.8.0 (Dynamic Genre Leveling)</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 3.6.0 &nbsp;·&nbsp; Native Total Rating Architecture</p>
+            <p class="version-tag">Version 3.8.0 &nbsp;·&nbsp; Dynamic Genre Equalization</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -83,30 +83,33 @@
                 game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
             );
 
-            const MIN_TRUST_REVIEWS = 40;  
             const CHART_GRAVITY_CENTER = 70.0; 
 
             filtered.forEach(game => {
                 const rawTotalRating = game.total_rating ? Number(game.total_rating) : NaN;
                 const reviews = game.reviews ? Number(game.reviews) : 0;
                 
+                // V3.8.0 TARGETED EQUALIZATION: Find if 'Sports' (ID 14) is tagged
+                const isSportsGenre = game.genres && game.genres.includes(14);
+                const activeTrustFloor = isSportsGenre ? 12 : 40;
+                const statusProfile = isSportsGenre ? "SPORTS_ADJUSTED" : "STANDARD";
+                
                 const hasValidScore = !isNaN(rawTotalRating) && rawTotalRating > 0;
                 let finalQualityBaseline = 70.0;
-                let trackingMode = "NATIVE_TOTAL";
                 
                 if (hasValidScore) {
                     finalQualityBaseline = rawTotalRating;
                 } else {
                     finalQualityBaseline = Math.min(95, 72 + (reviews / 4));
-                    trackingMode = "CALCULATED";
                 }
                 
-                const balancedScore = ((reviews * finalQualityBaseline) + (MIN_TRUST_REVIEWS * CHART_GRAVITY_CENTER)) / (reviews + MIN_TRUST_REVIEWS);
+                // Bayesian calculation execution using the contextual threshold floor
+                const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * CHART_GRAVITY_CENTER)) / (reviews + activeTrustFloor);
                 
                 game.raw_mindshare = balancedScore;
                 game.debug_quality = finalQualityBaseline.toFixed(1);
-                game.debug_confidence = Math.min(100, (reviews / MIN_TRUST_REVIEWS) * 100).toFixed(0);
-                game.debug_mode = trackingMode;
+                game.debug_confidence = Math.min(100, (reviews / activeTrustFloor) * 100).toFixed(0);
+                game.debug_mode = statusProfile;
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
@@ -134,7 +137,7 @@
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
                             Index Rating: <span class="engagement-value">${game.raw_mindshare.toFixed(1)}%</span>
-                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Total Score: ${game.debug_quality}% [${game.debug_mode}] | System Trust: ${game.debug_confidence}%)</span>
+                            <span style="font-size:0.7rem; opacity:0.6; margin-left:8px;">(Score: ${game.debug_quality}% [${game.debug_mode}] | Trust: ${game.debug_confidence}%)</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -148,7 +151,7 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Restoring Review-Weighted Core Parameters...</div>';
+            content.innerHTML = '<div class="loading">Aligning Regional Genre Demographics...</div>';
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
                 const data = await response.json();
