@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.6.0</p>
+            <p class="version-tag">Version 4.7.0</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -51,7 +51,7 @@
     </div>
 
     <script>
-        // PASTE YOUR NEWLY GENERATED /EXEC URL HERE:
+        // HARDWIRED ENGINE URL - LOCKDOWN REGISTRY
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec';
         
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
@@ -84,13 +84,9 @@
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
-                // Defensive check: default to 0 if data isn't initialized yet
                 const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
-                
-                // If it is tagged as DLC (1), Expansion (2), Bundle (3), etc., it gets cut
                 if (categoryNum !== 0) return false;
 
-                // Explicit text-string fallback protection
                 const titleLower = game.name.toLowerCase();
                 if (titleLower.includes('hearts of stone') || 
                     titleLower.includes('blood and wine') || 
@@ -116,11 +112,15 @@
                 const isSportsGenre = game.genres && game.genres.includes(14);
                 const isIndieGenre = game.genres && game.genres.includes(32);
                 
+                // V4.7.0 ALGORITHM UPDATE: Map the iOS platform constraint (ID: 39)
+                const isIOSPlatform = game.platforms && game.platforms.includes(39);
+                
                 let activeTrustFloor = 40; 
                 
                 if (isSportsGenre) {
                     activeTrustFloor = 12;
-                } else if (isIndieGenre) {
+                } else if (isIndieGenre || isIOSPlatform) {
+                    // Force iOS games to cross the high-volume review gate to rank highly
                     activeTrustFloor = 80; 
                 }
                 
@@ -177,7 +177,6 @@
             const content = document.getElementById('content');
             content.innerHTML = '<div class="loading">Loading Index...</div>';
             try {
-                // Appending a timestamp parameters forces browsers to bypass internal file caching loops
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}&_cb=${Date.now()}`);
                 const data = await response.json();
                 displayGames(data.games || []);
