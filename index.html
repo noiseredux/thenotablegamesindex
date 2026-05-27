@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.7.0</p>
+            <p class="version-tag">Version 4.8.0</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -111,17 +111,23 @@
                 
                 const isSportsGenre = game.genres && game.genres.includes(14);
                 const isIndieGenre = game.genres && game.genres.includes(32);
-                
-                // V4.7.0 ALGORITHM UPDATE: Map the iOS platform constraint (ID: 39)
                 const isIOSPlatform = game.platforms && game.platforms.includes(39);
                 
                 let activeTrustFloor = 40; 
+                let activeGravityCenter = CHART_GRAVITY_CENTER;
                 
                 if (isSportsGenre) {
                     activeTrustFloor = 12;
-                } else if (isIndieGenre || isIOSPlatform) {
-                    // Force iOS games to cross the high-volume review gate to rank highly
+                } 
+                if (isIndieGenre) {
                     activeTrustFloor = 80; 
+                }
+                
+                // V4.8.0 AGGRESSIVE MOBILE COMPRESSION
+                // iOS criteria absolutely overrides any soft genre filters (like Sports) 
+                if (isIOSPlatform) {
+                    activeTrustFloor = 200;      // Massively expands the review sample size barrier
+                    activeGravityCenter = 55.0;  // Forces unreviewed ports down to a failing grade
                 }
                 
                 const hasValidScore = !isNaN(rawTotalRating) && rawTotalRating > 0;
@@ -133,7 +139,7 @@
                     finalQualityBaseline = Math.min(95, 72 + (reviews / 4));
                 }
                 
-                const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * CHART_GRAVITY_CENTER)) / (reviews + activeTrustFloor);
+                const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * activeGravityCenter)) / (reviews + activeTrustFloor);
                 game.raw_mindshare = balancedScore;
             });
 
