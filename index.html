@@ -21,7 +21,6 @@
         .controls { background: #e2e2ea; padding: 15px; display: flex; justify-content: center; align-items: center; gap: 15px; }
         .controls select { padding: 8px 20px; font-weight: 700; border: 2px solid var(--ps-blue); border-radius: 4px; color: var(--ps-blue); cursor: pointer; }
         .loading { text-align: center; padding: 80px; font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--ps-blue); }
-        .dev-warning { background: #fff3cd; color: #856404; padding: 12px; text-align: center; font-weight: bold; font-size: 0.9rem; border-bottom: 2px solid #ffeeba; display: none; }
         .games-grid { display: flex; flex-direction: column; gap: 12px; padding: 30px; max-width: 900px; margin: 0 auto; }
         .game-card { background: white; border: 1px solid #dcdce8; border-radius: 8px; display: flex; align-items: center; padding: 14px; gap: 20px; text-decoration: none; color: inherit; transition: all 0.2s ease; }
         .game-card:hover { transform: translateX(8px); border-color: var(--ps-blue-light); }
@@ -35,11 +34,10 @@
     </style>
 </head>
 <body>
-    <div id="devWarning" class="dev-warning">⚠️ Deployment Warning: Your Google Apps Script isn't transmitting category fields. Please redeploy it as a "New Version".</div>
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.5.1</p>
+            <p class="version-tag">Version 4.6.0</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -53,6 +51,7 @@
     </div>
 
     <script>
+        // PASTE YOUR NEWLY GENERATED /EXEC URL HERE:
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec';
         
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
@@ -80,21 +79,18 @@
 
         function displayGames(gamesList) {
             const content = document.getElementById('content');
-            const warningBanner = document.getElementById('devWarning');
             
-            // Check if the backend failed to deliver category markers
-            const missingCategoryData = gamesList.length > 0 && !gamesList.some(g => g.category !== undefined);
-            warningBanner.style.display = missingCategoryData ? 'block' : 'none';
-
             let filtered = gamesList.filter(game => {
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
-                // 1. Core Category Filter (Main Games = 0 or undefined if IGDB drops field on defaults)
-                const categoryNum = game.category !== undefined ? Number(game.category) : 0;
+                // Defensive check: default to 0 if data isn't initialized yet
+                const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
+                
+                // If it is tagged as DLC (1), Expansion (2), Bundle (3), etc., it gets cut
                 if (categoryNum !== 0) return false;
 
-                // 2. Client-Side Substring Filter (Protects the list if data points are mislabeled or cached)
+                // Explicit text-string fallback protection
                 const titleLower = game.name.toLowerCase();
                 if (titleLower.includes('hearts of stone') || 
                     titleLower.includes('blood and wine') || 
@@ -103,7 +99,6 @@
                     return false;
                 }
 
-                // 3. Keyword Safety Filter
                 if (game.keywords && game.keywords.length > 0) {
                     const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial');
                     if (isFauxContent) return false; 
@@ -182,7 +177,8 @@
             const content = document.getElementById('content');
             content.innerHTML = '<div class="loading">Loading Index...</div>';
             try {
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`);
+                // Appending a timestamp parameters forces browsers to bypass internal file caching loops
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}&_cb=${Date.now()}`);
                 const data = await response.json();
                 displayGames(data.games || []);
             } catch (e) {
