@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.2.0</p>
+            <p class="version-tag">Version 4.3.0</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -79,9 +79,18 @@
         function displayGames(gamesList) {
             const content = document.getElementById('content');
             
-            let filtered = gamesList.filter(game => 
-                game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))
-            );
+            // V4.3.0 CLIENT SAFETY FILTER: Drops games containing unofficial or fangame slugs with zero data risk
+            let filtered = gamesList.filter(game => {
+                const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
+                if (!hasPlatform) return false;
+
+                if (game.keywords && game.keywords.length > 0) {
+                    const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial');
+                    if (isFauxContent) return false; 
+                }
+
+                return true;
+            });
 
             const CHART_GRAVITY_CENTER = 70.0; 
 
