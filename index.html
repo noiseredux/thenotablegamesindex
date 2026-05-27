@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.0.0</p>
+            <p class="version-tag">Version 5.0.1</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -80,17 +80,19 @@
         function displayGames(gamesList) {
             const content = document.getElementById('content');
             
+            // DIAGNOSTIC SANITY CHECK
+            if (gamesList.length > 0 && !('category' in gamesList[0])) {
+                console.warn("⚠️ DETECTED CRITICAL ERROR: Your Google Apps Script Web App deployment is running old code. It is not sending game data categories down to the frontend.");
+            }
+
             let filtered = gamesList.filter(game => {
-                // 1. Platform Guard
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
-                // 2. V5.0.0 CATEGORY ARCHITECTURE GUARD
-                // Explicitly isolates only Main Games (0) and Standalone Expansions (4)
+                // V5.0.1 NATIVE CATEGORY FILTER
                 const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
                 if (categoryNum !== 0 && categoryNum !== 4) return false;
 
-                // 3. Unofficial Content Guard
                 if (game.keywords && game.keywords.length > 0) {
                     const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial');
                     if (isFauxContent) return false; 
