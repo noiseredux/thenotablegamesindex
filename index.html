@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 4.4.0</p>
+            <p class="version-tag">Version 4.5.0</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -79,11 +79,14 @@
         function displayGames(gamesList) {
             const content = document.getElementById('content');
             
+            // V4.5.0 FRONTEND FILTER: Sledgehammer handles the data isolation safely inside browser memory
             let filtered = gamesList.filter(game => {
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
-                // Keeps safe client-side backup keyword check active
+                // Drops any content explicitly marked as DLC, Expansion, Bundle, Mod, Remake, Remaster, Port, etc.
+                if (game.category !== 0) return false;
+
                 if (game.keywords && game.keywords.length > 0) {
                     const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial');
                     if (isFauxContent) return false; 
