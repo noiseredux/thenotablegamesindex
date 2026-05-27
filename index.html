@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.0.4</p>
+            <p class="version-tag">Version 5.0.5</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -87,9 +87,12 @@
                 const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
                 if (categoryNum !== 0 && categoryNum !== 4) return false;
 
-                // 2. THE PARENT SWEEP FILTER
-                // If a game has an assigned parent_game ID, it means it's a remake, mod, or port
+                // 2. THE DOUBLE-GATE RELATIONAL FILTER
+                // Rejects if it is tied to an explicit parent game OR an explicit version parent
                 if (game.parent_game !== undefined && game.parent_game !== null) {
+                    return false;
+                }
+                if (game.version_parent !== undefined && game.version_parent !== null) {
                     return false;
                 }
 
