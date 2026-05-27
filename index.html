@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Notable Games Index (Category Debugger)</title>
+    <title>The Notable Games Index</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root { 
@@ -23,40 +23,55 @@
         .loading { text-align: center; padding: 80px; font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--ps-blue); }
         .games-grid { display: flex; flex-direction: column; gap: 12px; padding: 30px; max-width: 900px; margin: 0 auto; }
         .game-card { background: white; border: 1px solid #dcdce8; border-radius: 8px; display: flex; align-items: center; padding: 14px; gap: 20px; text-decoration: none; color: inherit; transition: all 0.2s ease; }
+        .game-card:hover { transform: translateX(8px); border-color: var(--ps-blue-light); }
         .game-rank { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--ps-blue); min-width: 65px; text-align: center; }
         .game-image-container { width: 70px; height: 94px; background: #eee; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
         .game-image { width: 100%; height: 100%; object-fit: cover; }
         .game-title { font-weight: 700; font-size: 1.2rem; color: var(--text); }
         .engagement-value { color: var(--nin-red); font-weight: 700; }
         .platform-tag { background: #edf2f7; color: #4a5568; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; margin-right: 5px; text-transform: uppercase; font-weight: 700; border: 1px solid #cbd5e0; }
-        
-        /* Debug Badge Styling */
-        .debug-badge { background: #333; color: #fff; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-left: 10px; font-family: monospace; font-weight: bold; }
+        footer { padding: 50px; text-align: center; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid #e2e2ea; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.0.3 (Data Stream Inspector)</p>
+            <p class="version-tag">Version 5.0.4</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
             <select id="yearSelect"></select>
         </div>
         <div id="content"></div>
+        <footer>
+            Built by noiseredux &nbsp;·&nbsp; Data powered by IGDB <br>
+            A curated record of cultural mindshare for the Sony, Nintendo, and Apple lineages.
+        </footer>
     </div>
 
     <script>
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec';
+        
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
-        const PLATFORM_NAMES = { 130: 'Switch', 508: 'Switch 2', 167: 'PS5', 48: 'PS4', 14: 'Mac', 39: 'iOS' };
+        
+        const PLATFORM_NAMES = { 
+            75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 
+            19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 
+            41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 
+            24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 
+            59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 
+            57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 
+            9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 
+            46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' 
+        };
 
         function populateYearDropdown() {
             const select = document.getElementById('yearSelect');
             for (let year = 2026; year >= 1977; year--) {
                 const opt = document.createElement('option');
-                opt.value = year; opt.textContent = year;
+                opt.value = year; 
+                opt.textContent = year;
                 select.appendChild(opt);
             }
         }
@@ -64,40 +79,80 @@
         function displayGames(gamesList) {
             const content = document.getElementById('content');
             
-            // 1. WE TEMPORARILY REMOVE THE FILTER TO SEE WHAT IS ACTUALLY IN THE DATA STREAM
             let filtered = gamesList.filter(game => {
-                return game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
+                const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
+                if (!hasPlatform) return false;
+
+                // 1. PRIMARY ENUM CATEGORY GUARDRAIL
+                const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
+                if (categoryNum !== 0 && categoryNum !== 4) return false;
+
+                // 2. THE PARENT SWEEP FILTER
+                // If a game has an assigned parent_game ID, it means it's a remake, mod, or port
+                if (game.parent_game !== undefined && game.parent_game !== null) {
+                    return false;
+                }
+
+                if (game.keywords && game.keywords.length > 0) {
+                    const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial');
+                    if (isFauxContent) return false; 
+                }
+
+                return true;
             });
 
+            const CHART_GRAVITY_CENTER = 70.0; 
+
             filtered.forEach(game => {
-                const reviews = game.reviews ? Number(game.reviews) : 0;
                 const rawTotalRating = game.total_rating ? Number(game.total_rating) : NaN;
+                const reviews = game.reviews ? Number(game.reviews) : 0;
+                
+                const isSportsGenre = game.genres && game.genres.includes(14);
+                const isIndieGenre = game.genres && game.genres.includes(32);
+                const isIOSPlatform = game.platforms && game.platforms.includes(39);
+                
+                let activeTrustFloor = 40; 
+                let activeGravityCenter = CHART_GRAVITY_CENTER;
+                
+                if (isSportsGenre) { activeTrustFloor = 12; } 
+                if (isIndieGenre) { activeTrustFloor = 80; }
+                if (isIOSPlatform) { activeTrustFloor = 200; activeGravityCenter = 55.0; }
+                
                 const hasValidScore = !isNaN(rawTotalRating) && rawTotalRating > 0;
-                let baseline = hasValidScore ? rawTotalRating : Math.min(95, 72 + (reviews / 4));
-                game.raw_mindshare = ((reviews * baseline) + (40 * 70.0)) / (reviews + 40);
+                let finalQualityBaseline = hasValidScore ? rawTotalRating : Math.min(95, 72 + (reviews / 4));
+                
+                const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * activeGravityCenter)) / (reviews + activeTrustFloor);
+                game.raw_mindshare = balancedScore;
             });
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare);
+
+            if (!filtered.length) { 
+                content.innerHTML = '<div class="loading">No records found for this year.</div>'; 
+                return; 
+            }
 
             const grid = document.createElement('div');
             grid.className = 'games-grid';
             
             filtered.forEach((game, index) => {
-                // Read exactly what token is attached to this item
-                const rawCategoryValue = game.category !== undefined ? game.category : 'MISSING';
-                
-                const card = document.createElement('div');
+                const card = document.createElement('a');
                 card.className = 'game-card';
+                card.href = `https://www.igdb.com/games/${game.slug}`;
+                card.target = '_blank';
+                
+                const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
                 
                 card.innerHTML = `
                     <div class="game-rank">#${index + 1}</div>
+                    <div class="game-image-container">${game.cover ? `<img class="game-image" src="${coverUrl}" alt="${game.name} cover">` : ''}</div>
                     <div class="game-info">
-                        <div class="game-title">
-                            ${game.name} 
-                            <span class="debug-badge">API CODE: ${rawCategoryValue}</span>
+                        <div class="game-title">${game.name}</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
+                            Score: <span class="engagement-value">${Math.round(game.raw_mindshare)}%</span>
                         </div>
-                        <div style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
-                            Slug: <code>${game.slug}</code>
+                        <div style="margin-top: 4px;">
+                            ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
                         </div>
                     </div>`;
                 grid.appendChild(card);
@@ -108,10 +163,15 @@
 
         async function loadGames(year) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Reading Stream...</div>';
-            const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}&_cb=${Date.now()}`);
-            const data = await response.json();
-            displayGames(data.games || []);
+            content.innerHTML = '<div class="loading">Loading Index...</div>';
+            try {
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}&_cb=${Date.now()}`);
+                const data = await response.json();
+                displayGames(data.games || []);
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = `<div class="loading" style="color:red">System Connection Error.</div>`;
+            }
         }
 
         populateYearDropdown();
