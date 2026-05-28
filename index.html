@@ -1,29 +1,73 @@
-<!-- ... inside your script tag ... -->
-<script> 
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec'; 
-    // ... (platforms and setup code remains the same)
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <title>The Notable Games Index</title> 
+    <style> 
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        .controls { text-align: center; margin-bottom: 20px; }
+        .games-grid { display: flex; flex-direction: column; gap: 10px; max-width: 800px; margin: 0 auto; }
+        .game-card { background: white; padding: 15px; display: flex; align-items: center; gap: 15px; text-decoration: none; color: black; border: 1px solid #ddd; border-radius: 8px; }
+        .game-rank { font-size: 1.5rem; font-weight: bold; color: #003087; min-width: 40px; }
+        .game-title { font-weight: bold; }
+        .engagement-value { color: #e4000f; font-weight: bold; }
+    </style> 
+</head> 
+<body> 
+    <div class="controls">
+        <select id="yearSelect"></select>
+    </div>
+    <div id="content"></div> 
 
-    function displayGames(gamesList) { 
-        const content = document.getElementById('content'); 
-        // ... (filtering logic remains the same)
+    <script> 
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec'; 
+        const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306]; 
 
-        // UPDATED: Hype Score = Reviews + Follows + Hypes
-        filtered.forEach(game => { 
-            const reviews = game.reviews || 0; 
-            const follows = game.follows || 0; 
-            const hypes = game.hypes || 0; 
-            game.hype_score = reviews + follows + hypes; 
-        }); 
+        function displayGames(gamesList) { 
+            const content = document.getElementById('content'); 
+            let filtered = gamesList.filter(game => { 
+                if (!game.platforms || !game.platforms.some(p => ALLOWED_PLATFORMS.includes(p))) return false; 
+                if (game.category !== 0) return false;
+                if (game.keywords && game.keywords.some(k => k.slug && (k.slug.includes('fan') || k.slug.includes('unofficial')))) return false;
+                return true; 
+            }); 
 
-        filtered.sort((a, b) => b.hype_score - a.hype_score); 
+            // Hype Score: Reviews + Follows + Hypes
+            filtered.forEach(game => { 
+                game.hype_score = (game.reviews || 0) + (game.follows || 0) + (game.hypes || 0); 
+            }); 
 
-        // ... (rest of display logic)
-        // Inside your .innerHTML template, update the Hype Score display:
-        /*
-        <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;"> 
-            Hype Score: <span class="engagement-value">${game.hype_score}</span> 
-        </div>
-        */
-    }
-    // ... (rest of script)
-</script>
+            filtered.sort((a, b) => b.hype_score - a.hype_score); 
+
+            const grid = document.createElement('div'); 
+            grid.className = 'games-grid'; 
+            filtered.forEach((game, index) => { 
+                const card = document.createElement('a'); 
+                card.className = 'game-card'; 
+                card.href = `https://www.igdb.com/games/${game.slug}`; 
+                card.innerHTML = ` 
+                    <div class="game-rank">#${index + 1}</div> 
+                    <div class="game-title">${game.name}</div> 
+                    <div class="engagement-value">Hype: ${game.hype_score}</div>`; 
+                grid.appendChild(card); 
+            }); 
+            content.innerHTML = ''; 
+            content.appendChild(grid); 
+        } 
+
+        async function loadGames(year) { 
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}`); 
+            const data = await res.json(); 
+            displayGames(data.games || []); 
+        } 
+
+        const select = document.getElementById('yearSelect'); 
+        for (let y = 2026; y >= 1977; y--) { 
+            let opt = document.createElement('option'); opt.value = y; opt.textContent = y; 
+            select.appendChild(opt); 
+        } 
+        select.addEventListener('change', e => loadGames(e.target.value)); 
+        loadGames(2026); 
+    </script> 
+</body> 
+</html>
