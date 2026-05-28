@@ -44,7 +44,7 @@
     </div> 
 
     <script> 
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec'; 
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec'; // Update this with your script URL
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306]; 
         const PLATFORM_NAMES = { 75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' }; 
 
@@ -60,40 +60,26 @@
         function displayGames(gamesList) { 
             const content = document.getElementById('content'); 
             let filtered = gamesList.filter(game => { 
-                // Platform validation gate
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p)); 
                 if (!hasPlatform) return false; 
-
-                // Category 0 Only (Main Game) Whitelist
                 const currentCategory = (game.category !== undefined && game.category !== null) ? Number(game.category) : -1;
                 if (currentCategory !== 0) return false;
-
-                // Keyword Content Guardrail: Broad search to catch fan-remakes and unofficial projects
                 if (game.keywords && game.keywords.length > 0) { 
-                    const isFauxContent = game.keywords.some(k => 
-                        k.slug && (k.slug.includes('fan') || k.slug.includes('unofficial'))
-                    ); 
+                    const isFauxContent = game.keywords.some(k => k.slug && (k.slug.includes('fan') || k.slug.includes('unofficial'))); 
                     if (isFauxContent) return false;  
                 } 
                 return true; 
             }); 
 
-            const CHART_GRAVITY_CENTER = 70.0;  
+            // HYPE SCORE CALCULATION: Reviews + Follows
             filtered.forEach(game => { 
-                const rawTotalRating = game.total_rating ? Number(game.total_rating) : NaN; 
-                const reviews = game.reviews ? Number(game.reviews) : 0; 
-                const isSportsGenre = game.genres && game.genres.includes(14); 
-                const isIndieGenre = game.genres && game.genres.includes(32); 
-                const isIOSPlatform = game.platforms && game.platforms.includes(39); 
-                let activeTrustFloor = 40; let activeGravityCenter = CHART_GRAVITY_CENTER; 
-                if (isSportsGenre) { activeTrustFloor = 12; } if (isIndieGenre) { activeTrustFloor = 80; } if (isIOSPlatform) { activeTrustFloor = 200; activeGravityCenter = 55.0; } 
-                const hasValidScore = !isNaN(rawTotalRating) && rawTotalRating > 0; 
-                let finalQualityBaseline = hasValidScore ? rawTotalRating : Math.min(95, 72 + (reviews / 4)); 
-                const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * activeGravityCenter)) / (reviews + activeTrustFloor); 
-                game.raw_mindshare = balancedScore; 
+                const reviews = game.reviews || 0; 
+                const follows = game.follows || 0; 
+                game.hype_score = reviews + follows; 
             }); 
 
-            filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare); 
+            filtered.sort((a, b) => b.hype_score - a.hype_score); 
+
             if (!filtered.length) { content.innerHTML = '<div class="loading">No records found for this year.</div>'; return; } 
 
             const grid = document.createElement('div'); grid.className = 'games-grid'; 
@@ -107,7 +93,7 @@
                     <div class="game-info"> 
                         <div class="game-title">${game.name}</div> 
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;"> 
-                            Score: <span class="engagement-value">${Math.round(game.raw_mindshare)}%</span> 
+                            Hype Score: <span class="engagement-value">${game.hype_score}</span> 
                         </div> 
                         <div style="margin-top: 4px;"> 
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')} 
