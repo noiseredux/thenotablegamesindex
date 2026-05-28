@@ -37,7 +37,7 @@
     <div class="container"> 
         <header> 
             <h1>The Notable Games Index</h1> 
-            <p class="version-tag">Version 5.0.6</p> 
+            <p class="version-tag">Version 5.0.7</p> 
         </header> 
         <div class="controls"> 
             <label>Select Year:</label> 
@@ -84,17 +84,10 @@
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p)); 
                 if (!hasPlatform) return false; 
 
-                // [FIXED] Category filter rule completely removed here so Remakes like Tetris (1989) pass through perfectly.
+                // [FIXED] Relational filter gates completely removed.
+                // This ensures major standalone remakes/ports containing parent links bypass the restrictions cleanly.
 
-                // 2. Relational filters (Blocks duplicate subsystem clones and minor variations)
-                if (game.parent_game !== undefined && game.parent_game !== null) { 
-                    return false; 
-                } 
-                if (game.version_parent !== undefined && game.version_parent !== null) { 
-                    return false; 
-                } 
-
-                // 3. Keyword Content Guardrail
+                // 2. Keyword Content Guardrail
                 if (game.keywords && game.keywords.length > 0) { 
                     const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial'); 
                     if (isFauxContent) return false;  
