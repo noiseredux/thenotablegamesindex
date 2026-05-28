@@ -27,6 +27,10 @@
         .game-rank { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--ps-blue); min-width: 65px; text-align: center; }
         .game-image-container { width: 70px; height: 94px; background: #eee; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
         .game-image { width: 100%; height: 100%; object-fit: cover; }
+        .game-card:hover { transform: translateX(8px); border-color: var(--ps-blue-light); }
+        .game-rank { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--ps-blue); min-width: 65px; text-align: center; }
+        .game-image-container { width: 70px; height: 94px; background: #eee; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+        .game-image { width: 100%; height: 100%; object-fit: cover; }
         .game-title { font-weight: 700; font-size: 1.2rem; color: var(--text); }
         .engagement-value { color: var(--nin-red); font-weight: 700; }
         .platform-tag { background: #edf2f7; color: #4a5568; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; margin-right: 5px; text-transform: uppercase; font-weight: 700; border: 1px solid #cbd5e0; }
@@ -84,23 +88,28 @@
                 if (!hasPlatform) return false;
 
                 // 1. PRIMARY ENUM CATEGORY GUARDRAIL
-                // Explicitly allow Main Games (0), Standalone Expansions (4), Remakes (8), and Ports (11)
                 const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
                 if (categoryNum !== 0 && categoryNum !== 4 && categoryNum !== 8 && categoryNum !== 11) return false;
 
-                // 2. ECOSYSTEM-AWARE MULTI-GATE FILTER
+                // 2. THE DEFENSIVE ECOSYSTEM-AWARE RELATIONAL FILTER
                 if (categoryNum === 8 || categoryNum === 11) {
-                    // Check if the original parent game already launched inside your allowed ecosystem
-                    const parentWasOnAllowedPlatform = 
-                        (game.parent_platforms && game.parent_platforms.some(id => ALLOWED_PLATFORMS.includes(id))) ||
-                        (game.version_parent_platforms && game.version_parent_platforms.some(id => ALLOWED_PLATFORMS.includes(id)));
-                    
-                    // If it already debuted on one of your systems, hide this copycat version
-                    if (parentWasOnAllowedPlatform) return false;
+                    // Safe Check: Ensure the new backend platform tracking arrays exist before processing
+                    if (Array.isArray(game.parent_platforms) || Array.isArray(game.version_parent_platforms)) {
+                        const parentPlatforms = game.parent_platforms || [];
+                        const versionPlatforms = game.version_parent_platforms || [];
+                        
+                        const parentWasOnAllowedPlatform = 
+                            parentPlatforms.some(id => ALLOWED_PLATFORMS.includes(id)) ||
+                            versionPlatforms.some(id => ALLOWED_PLATFORMS.includes(id));
+                        
+                        // If it already debuted on one of your tracked systems, drop this version!
+                        if (parentWasOnAllowedPlatform) return false;
+                    }
+                    // Fallback Safety: If the network stream hasn't loaded arrays yet, allow it by default
                 } else {
-                    // Standard structural check for Main Games (0) and Standalone Expansions (4)
-                    if (game.parent_platforms && game.parent_platforms.length > 0) return false;
-                    if (game.version_parent_platforms && game.version_parent_platforms.length > 0) return false;
+                    // For standard games (0 & 4), maintain the rigorous double-gate safety checks
+                    if (game.parent_game !== undefined && game.parent_game !== null) return false;
+                    if (game.version_parent !== undefined && game.version_parent !== null) return false;
                 }
 
                 // 3. FAUX CONTENT FILTER
@@ -150,3 +159,44 @@
                 const card = document.createElement('a');
                 card.className = 'game-card';
                 card.href = `https://www.igdb.com/games/${game.slug}`;
+                card.target = '_blank';
+                
+                const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
+                
+                card.innerHTML = `
+                    <div class="game-rank">#${index + 1}</div>
+                    <div class="game-image-container">${game.cover ? `<img class="game-image" src="${coverUrl}" alt="${game.name} cover">` : ''}</div>
+                    <div class="game-info">
+                        <div class="game-title">${game.name}</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
+                            Score: <span class="engagement-value">${Math.round(game.raw_mindshare)}%</span>
+                        </div>
+                        <div style="margin-top: 4px;">
+                            ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+            content.innerHTML = '';
+            content.appendChild(grid);
+        }
+
+        async function loadGames(year) {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading Index...</div>';
+            try {
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}&_cb=${Date.now()}`);
+                const data = await response.json();
+                displayGames(data.games || []);
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = `<div class="loading" style="color:red">System Connection Error.</div>`;
+            }
+        }
+
+        populateYearDropdown();
+        document.getElementById('yearSelect').addEventListener('change', e => loadGames(e.target.value));
+        loadGames(2026);
+    </script>
+</body>
+</html>
