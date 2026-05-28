@@ -83,7 +83,7 @@
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p)); 
                 if (!hasPlatform) return false; 
 
-                // 1. PRIMARY ENUM CATEGORY GUARDRAIL 
+                // 1. PRIMARY ENUM CATEGORY GUARDRAIL (Allows Main Games [0] and Expansions [4])
                 const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0; 
                 if (categoryNum !== 0 && categoryNum !== 4) return false; 
 
