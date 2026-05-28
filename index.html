@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.1.0</p>
+            <p class="version-tag">Version 5.2.0 (Fully Automated)</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -66,12 +66,6 @@
             46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' 
         };
 
-        // ⚠️ MANUAL OVERRIDE SAFETY VALVE
-        // If a game slips past structural database rules, add its IGDB URL slug here to drop it instantly.
-        const MANUAL_EXCLUSIONS = [
-            'dragon-quest-vii-reimagined'
-        ];
-
         function populateYearDropdown() {
             const select = document.getElementById('yearSelect');
             for (let year = 2026; year >= 1977; year--) {
@@ -86,9 +80,6 @@
             const content = document.getElementById('content');
             
             let filtered = gamesList.filter(game => {
-                // 0. CHECK MANUAL EXCLUSION GATE FIRST
-                if (game.slug && MANUAL_EXCLUSIONS.includes(game.slug)) return false;
-
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
@@ -96,18 +87,20 @@
                 const categoryNum = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0;
                 if (categoryNum !== 0 && categoryNum !== 4 && categoryNum !== 8 && categoryNum !== 11) return false;
 
-                // 2. THE DEFENSIVE ECOSYSTEM-AWARE RELATIONAL FILTER (Ports & Remakes)
+                // 2. NATIVE AUTOMATED RELATIONAL FILTER (Ecosystem-Wide)
                 if (categoryNum === 8 || categoryNum === 11) {
-                    if (Array.isArray(game.parent_platforms) || Array.isArray(game.version_parent_platforms)) {
-                        const parentPlatforms = game.parent_platforms || [];
-                        const versionPlatforms = game.version_parent_platforms || [];
-                        
-                        const parentWasOnAllowedPlatform = 
-                            parentPlatforms.some(id => ALLOWED_PLATFORMS.includes(id)) ||
-                            versionPlatforms.some(id => ALLOWED_PLATFORMS.includes(id));
-                        
-                        if (parentWasOnAllowedPlatform) return false;
-                    }
+                    const parentPlatforms = game.parent_platforms || [];
+                    const versionPlatforms = game.version_parent_platforms || [];
+                    const remakePlatforms = game.remake_parent_platforms || [];
+                    
+                    // Unified lineage verification check
+                    const parentWasOnAllowedPlatform = 
+                        parentPlatforms.some(id => ALLOWED_PLATFORMS.includes(id)) ||
+                        versionPlatforms.some(id => ALLOWED_PLATFORMS.includes(id)) ||
+                        remakePlatforms.some(id => ALLOWED_PLATFORMS.includes(id));
+                    
+                    // If ancestor data maps back to your tracked ecosystems, omit automatically
+                    if (parentWasOnAllowedPlatform) return false;
                 } else {
                     if (game.parent_game !== undefined && game.parent_game !== null) return false;
                     if (game.version_parent !== undefined && game.version_parent !== null) return false;
