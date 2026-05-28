@@ -85,13 +85,25 @@
                 // 2. Pure Game Category Guardrail
                 // Excludes: DLC (1), Expansion (2), Mod (5), Episode (6), Season (7), Expanded Game (10), Fork (12)
                 const excludedCategories = [1, 2, 5, 6, 7, 10, 12]; 
-                const currentCategory = (game.category !== undefined && game.category !== null) ? Number(game.category) : 0; 
-                if (excludedCategories.includes(currentCategory)) { 
-                    return false; 
-                } 
-
-                // [FIXED] Relational filter gates completely removed. 
-                // This ensures major standalone remakes/ports containing parent links bypass the restrictions cleanly. 
+                
+                // If backend payload mapping is fully deployed, track structural ID property
+                if (game.category !== undefined && game.category !== null) {
+                    const currentCategory = Number(game.category); 
+                    if (excludedCategories.includes(currentCategory)) { 
+                        return false; 
+                    } 
+                } else {
+                    // Fallback String Sanity Filter if the payload doesn't map category yet
+                    const TitleClean = game.name ? game.name.toLowerCase() : "";
+                    if (
+                        TitleClean.includes("expansion") || 
+                        TitleClean.includes("season pass") || 
+                        TitleClean.includes("hearts of stone") || 
+                        TitleClean.includes("blood and wine")
+                    ) {
+                        return false;
+                    }
+                }
 
                 // 3. Keyword Content Guardrail 
                 if (game.keywords && game.keywords.length > 0) { 
