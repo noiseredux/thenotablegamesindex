@@ -60,12 +60,12 @@
         function displayGames(gamesList) { 
             const content = document.getElementById('content'); 
             
-            // FILTERING: Keep only games where at least one platform is in our allowed list
-            const filtered = gamesList.filter(game => {
+            // 1. Platform Filter
+            let filtered = gamesList.filter(game => {
                 return game.platforms.some(id => ALLOWED_PLATFORMS.includes(id));
             });
 
-            // Hype Score Calculation
+            // 2. Hype Score Calculation
             filtered.forEach(game => { 
                 const reviews = game.reviews || 0; 
                 const follows = game.follows || 0; 
@@ -73,6 +73,10 @@
                 game.hype_score = reviews + follows + hypes; 
             }); 
 
+            // 3. Omit games with 0 Hype Score
+            filtered = filtered.filter(game => game.hype_score > 0);
+
+            // 4. Sort by score
             filtered.sort((a, b) => b.hype_score - a.hype_score); 
 
             if (!filtered.length) { 
@@ -118,7 +122,4 @@
         populateYearDropdown(); 
         document.getElementById('yearSelect').value = '2026';
         document.getElementById('yearSelect').addEventListener('change', e => loadGames(e.target.value)); 
-        loadGames(2026); 
-    </script> 
-</body> 
-</html>
+        loadGames(202
