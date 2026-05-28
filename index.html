@@ -5,14 +5,7 @@
     <title>The Notable Games Index</title> 
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" /> 
     <style> 
-        :root {  
-            --ps-blue: #003087;  
-            --ps-blue-light: #0070cc;  
-            --nin-red: #e4000f;  
-            --bg: #f4f4f9;  
-            --text: #111118;  
-            --text-muted: #8888aa;  
-        } 
+        :root { --ps-blue: #003087; --ps-blue-light: #0070cc; --nin-red: #e4000f; --bg: #f4f4f9; --text: #111118; --text-muted: #8888aa; } 
         body { background-color: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 300; margin: 0; } 
         .container { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.05); } 
         header { background: linear-gradient(135deg, var(--ps-blue) 0%, #001a4d 100%); border-bottom: 4px solid var(--nin-red); padding: 3rem 1.5rem; text-align: center; } 
@@ -53,31 +46,21 @@
     <script> 
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec'; 
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306]; 
-        const PLATFORM_NAMES = {  
-            75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom',  
-            19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii',  
-            41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC',  
-            24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2',  
-            59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD',  
-            57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2',  
-            9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP',  
-            46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella'  
-        }; 
+        const PLATFORM_NAMES = { 75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' }; 
 
         function populateYearDropdown() { 
             const select = document.getElementById('yearSelect'); 
             for (let year = 2026; year >= 1977; year--) { 
                 const opt = document.createElement('option'); 
-                opt.value = year;  
-                opt.textContent = year; 
+                opt.value = year; opt.textContent = year; 
                 select.appendChild(opt); 
             } 
         } 
 
         function displayGames(gamesList) { 
             const content = document.getElementById('content'); 
-            
             let filtered = gamesList.filter(game => { 
+                // Platform validation gate
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p)); 
                 if (!hasPlatform) return false; 
 
@@ -85,28 +68,25 @@
                 const currentCategory = (game.category !== undefined && game.category !== null) ? Number(game.category) : -1;
                 if (currentCategory !== 0) return false;
 
+                // Keyword Content Guardrail: Broad search to catch fan-remakes and unofficial projects
                 if (game.keywords && game.keywords.length > 0) { 
-                    const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial'); 
+                    const isFauxContent = game.keywords.some(k => 
+                        k.slug && (k.slug.includes('fan') || k.slug.includes('unofficial'))
+                    ); 
                     if (isFauxContent) return false;  
                 } 
                 return true; 
             }); 
 
             const CHART_GRAVITY_CENTER = 70.0;  
-
             filtered.forEach(game => { 
                 const rawTotalRating = game.total_rating ? Number(game.total_rating) : NaN; 
                 const reviews = game.reviews ? Number(game.reviews) : 0; 
                 const isSportsGenre = game.genres && game.genres.includes(14); 
                 const isIndieGenre = game.genres && game.genres.includes(32); 
                 const isIOSPlatform = game.platforms && game.platforms.includes(39); 
-                 
-                let activeTrustFloor = 40;  
-                let activeGravityCenter = CHART_GRAVITY_CENTER; 
-                if (isSportsGenre) { activeTrustFloor = 12; }  
-                if (isIndieGenre) { activeTrustFloor = 80; } 
-                if (isIOSPlatform) { activeTrustFloor = 200; activeGravityCenter = 55.0; } 
-              
+                let activeTrustFloor = 40; let activeGravityCenter = CHART_GRAVITY_CENTER; 
+                if (isSportsGenre) { activeTrustFloor = 12; } if (isIndieGenre) { activeTrustFloor = 80; } if (isIOSPlatform) { activeTrustFloor = 200; activeGravityCenter = 55.0; } 
                 const hasValidScore = !isNaN(rawTotalRating) && rawTotalRating > 0; 
                 let finalQualityBaseline = hasValidScore ? rawTotalRating : Math.min(95, 72 + (reviews / 4)); 
                 const balancedScore = ((reviews * finalQualityBaseline) + (activeTrustFloor * activeGravityCenter)) / (reviews + activeTrustFloor); 
@@ -114,19 +94,12 @@
             }); 
 
             filtered.sort((a, b) => b.raw_mindshare - a.raw_mindshare); 
+            if (!filtered.length) { content.innerHTML = '<div class="loading">No records found for this year.</div>'; return; } 
 
-            if (!filtered.length) {  
-                content.innerHTML = '<div class="loading">No records found for this year.</div>'; 
-                return;  
-            } 
-
-            const grid = document.createElement('div'); 
-            grid.className = 'games-grid'; 
+            const grid = document.createElement('div'); grid.className = 'games-grid'; 
             filtered.forEach((game, index) => { 
                 const card = document.createElement('a'); 
-                card.className = 'game-card'; 
-                card.href = `https://www.igdb.com/games/${game.slug}`; 
-                card.target = '_blank'; 
+                card.className = 'game-card'; card.href = `https://www.igdb.com/games/${game.slug}`; card.target = '_blank'; 
                 const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : ''; 
                 card.innerHTML = ` 
                     <div class="game-rank">#${index + 1}</div> 
@@ -142,8 +115,7 @@
                     </div>`; 
                 grid.appendChild(card); 
             }); 
-            content.innerHTML = ''; 
-            content.appendChild(grid); 
+            content.innerHTML = ''; content.appendChild(grid); 
         } 
 
         async function loadGames(year) { 
@@ -154,8 +126,7 @@
                 const data = await response.json(); 
                 displayGames(data.games || []); 
             } catch (e) { 
-                console.error(e); 
-                content.innerHTML = `<div class="loading" style="color:red">System Connection Error.</div>`; 
+                console.error(e); content.innerHTML = `<div class="loading" style="color:red">System Connection Error.</div>`; 
             } 
         } 
 
