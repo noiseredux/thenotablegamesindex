@@ -78,38 +78,17 @@
             const content = document.getElementById('content'); 
             
             let filtered = gamesList.filter(game => { 
-                // 1. Platform validation gate 
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p)); 
                 if (!hasPlatform) return false; 
 
-                // 2. Pure Game Category Guardrail
-                // Excludes: DLC (1), Expansion (2), Mod (5), Episode (6), Season (7), Expanded Game (10), Fork (12)
-                const excludedCategories = [1, 2, 5, 6, 7, 10, 12]; 
-                
-                if (game.category !== undefined && game.category !== null) {
-                    const currentCategory = Number(game.category); 
-                    if (excludedCategories.includes(currentCategory)) { 
-                        return false; 
-                    } 
-                } else {
-                    // Fallback String Sanity Filter if category properties ever return null
-                    const titleClean = game.name ? game.name.toLowerCase() : "";
-                    if (
-                        titleClean.includes("expansion pack") || 
-                        titleClean.includes("season pass") || 
-                        titleClean.includes("hearts of stone") || 
-                        titleClean.includes("blood and wine")
-                    ) {
-                        return false;
-                    }
-                }
+                // Category 0 Only (Main Game) Whitelist
+                const currentCategory = (game.category !== undefined && game.category !== null) ? Number(game.category) : -1;
+                if (currentCategory !== 0) return false;
 
-                // 3. Keyword Content Guardrail 
                 if (game.keywords && game.keywords.length > 0) { 
                     const isFauxContent = game.keywords.some(k => k.slug === 'fangame' || k.slug === 'unofficial'); 
                     if (isFauxContent) return false;  
                 } 
-
                 return true; 
             }); 
 
@@ -118,14 +97,12 @@
             filtered.forEach(game => { 
                 const rawTotalRating = game.total_rating ? Number(game.total_rating) : NaN; 
                 const reviews = game.reviews ? Number(game.reviews) : 0; 
-                 
                 const isSportsGenre = game.genres && game.genres.includes(14); 
                 const isIndieGenre = game.genres && game.genres.includes(32); 
                 const isIOSPlatform = game.platforms && game.platforms.includes(39); 
                  
                 let activeTrustFloor = 40;  
                 let activeGravityCenter = CHART_GRAVITY_CENTER; 
-              
                 if (isSportsGenre) { activeTrustFloor = 12; }  
                 if (isIndieGenre) { activeTrustFloor = 80; } 
                 if (isIOSPlatform) { activeTrustFloor = 200; activeGravityCenter = 55.0; } 
@@ -145,15 +122,12 @@
 
             const grid = document.createElement('div'); 
             grid.className = 'games-grid'; 
-             
             filtered.forEach((game, index) => { 
                 const card = document.createElement('a'); 
                 card.className = 'game-card'; 
                 card.href = `https://www.igdb.com/games/${game.slug}`; 
                 card.target = '_blank'; 
-                 
                 const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : ''; 
-                 
                 card.innerHTML = ` 
                     <div class="game-rank">#${index + 1}</div> 
                     <div class="game-image-container">${game.cover ? `<img class="game-image" src="${coverUrl}" alt="${game.name} cover">` : ''}</div> 
