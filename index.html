@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.0.9</p>
+            <p class="version-tag">Version 5.1.0</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -66,6 +66,12 @@
             46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' 
         };
 
+        // ⚠️ MANUAL OVERRIDE SAFETY VALVE
+        // If a game slips past structural database rules, add its IGDB URL slug here to drop it instantly.
+        const MANUAL_EXCLUSIONS = [
+            'dragon-quest-vii-reimagined'
+        ];
+
         function populateYearDropdown() {
             const select = document.getElementById('yearSelect');
             for (let year = 2026; year >= 1977; year--) {
@@ -80,6 +86,9 @@
             const content = document.getElementById('content');
             
             let filtered = gamesList.filter(game => {
+                // 0. CHECK MANUAL EXCLUSION GATE FIRST
+                if (game.slug && MANUAL_EXCLUSIONS.includes(game.slug)) return false;
+
                 const hasPlatform = game.platforms && game.platforms.some(p => ALLOWED_PLATFORMS.includes(p));
                 if (!hasPlatform) return false;
 
@@ -89,21 +98,17 @@
 
                 // 2. THE DEFENSIVE ECOSYSTEM-AWARE RELATIONAL FILTER (Ports & Remakes)
                 if (categoryNum === 8 || categoryNum === 11) {
-                    // Safe Check: Ensure our backend platform tracking arrays exist before processing
                     if (Array.isArray(game.parent_platforms) || Array.isArray(game.version_parent_platforms)) {
                         const parentPlatforms = game.parent_platforms || [];
                         const versionPlatforms = game.version_parent_platforms || [];
                         
-                        // Check if the original version (via port relationship OR remake relationship) was on an allowed system
                         const parentWasOnAllowedPlatform = 
                             parentPlatforms.some(id => ALLOWED_PLATFORMS.includes(id)) ||
                             versionPlatforms.some(id => ALLOWED_PLATFORMS.includes(id));
                         
-                        // If it already debuted on one of your tracked systems (like PS1 in 2000), drop this remake/port!
                         if (parentWasOnAllowedPlatform) return false;
                     }
                 } else {
-                    // For standard games (0 & 4), maintain the rigorous double-gate safety checks
                     if (game.parent_game !== undefined && game.parent_game !== null) return false;
                     if (game.version_parent !== undefined && game.version_parent !== null) return false;
                     if (game.remake_of !== undefined && game.remake_of !== null) return false;
