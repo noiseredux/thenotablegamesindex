@@ -30,7 +30,7 @@
     <div class="container"> 
         <header> 
             <h1>The Notable Games Index</h1> 
-            <p class="version-tag">Version 5.1.1</p> 
+            <p class="version-tag">Version 5.2.0</p> 
         </header> 
         <div class="controls"> 
             <label>Select Year:</label> 
@@ -52,7 +52,9 @@
         const SPORT_MULTIPLIER = 2.5;
         const FIRST_PARTY_MULTIPLIER = 1.5;
         const AWARD_MULTIPLIER = 1.2;
-        const BLACKLISTED_GENRES = [32, 33, 34, 35, 36, 37]; 
+        
+        // IGDB Category Blacklist: 1=DLC, 2=Expansion, 3=Bundle, 4=Standalone Expansion, 5=Mod, 6=Episode, 7=Season
+        const BLACKLISTED_CATEGORIES = [1, 2, 3, 4, 5, 6, 7]; 
 
         function populateYearDropdown() { 
             const select = document.getElementById('yearSelect'); 
@@ -68,26 +70,23 @@
             
             let filtered = gamesList.filter(game => {
                 const isCorrectPlatform = game.platforms.some(id => ALLOWED_PLATFORMS.includes(id));
-                const hasBlacklistedGenre = game.genres && game.genres.some(id => BLACKLISTED_GENRES.includes(id));
-                return isCorrectPlatform && !hasBlacklistedGenre;
+                const isBlacklistedCategory = game.category && BLACKLISTED_CATEGORIES.includes(game.category);
+                return isCorrectPlatform && !isBlacklistedCategory;
             });
 
             filtered.forEach(game => { 
                 let score = (game.reviews || 0) + (game.follows || 0) + (game.hypes || 0);
                 
-                // 1. Sport Multiplier
                 if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
                     score = Math.round(score * SPORT_MULTIPLIER);
                 }
                 
-                // 2. First Party Publisher Multiplier
                 if (game.publishers && game.publishers.some(pub => 
                     pub.toLowerCase().includes('sony') || pub.toLowerCase().includes('nintendo')
                 )) {
                     score = Math.round(score * FIRST_PARTY_MULTIPLIER);
                 }
 
-                // 3. Award Keyword Multiplier
                 if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('award'))) {
                     score = Math.round(score * AWARD_MULTIPLIER);
                 }
