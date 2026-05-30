@@ -30,7 +30,7 @@
     <div class="container"> 
         <header> 
             <h1>The Notable Games Index</h1> 
-            <p class="version-tag">Version 5.0.8</p> 
+            <p class="version-tag">Version 5.0.9</p> 
         </header> 
         <div class="controls"> 
             <label>Select Year:</label> 
@@ -47,6 +47,8 @@
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec'; 
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306]; 
         const PLATFORM_NAMES = { 75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' }; 
+        const GENRE_SPORT_ID = 14;
+        const SPORT_MULTIPLIER = 2.0;
 
         function populateYearDropdown() { 
             const select = document.getElementById('yearSelect'); 
@@ -68,7 +70,15 @@
                 const reviews = game.reviews || 0; 
                 const follows = game.follows || 0; 
                 const hypes = game.hypes || 0; 
-                game.hype_score = reviews + follows + hypes; 
+                
+                let score = reviews + follows + hypes;
+                
+                // Apply Sports Multiplier if Genre ID 14 is present
+                if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
+                    score = Math.round(score * SPORT_MULTIPLIER);
+                }
+                
+                game.hype_score = score;
             }); 
 
             filtered = filtered.filter(game => game.hype_score > 0);
@@ -114,7 +124,6 @@
             } 
         } 
 
-        // Initialization logic:
         populateYearDropdown(); 
         document.getElementById('yearSelect').addEventListener('change', e => loadGames(e.target.value)); 
         loadGames(2026); 
