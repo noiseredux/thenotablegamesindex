@@ -30,7 +30,7 @@
     <div class="container"> 
         <header> 
             <h1>The Notable Games Index</h1> 
-            <p class="version-tag">Version 5.1.0</p> 
+            <p class="version-tag">Version 5.1.1</p> 
         </header> 
         <div class="controls"> 
             <label>Select Year:</label> 
@@ -51,6 +51,7 @@
         const GENRE_SPORT_ID = 14;
         const SPORT_MULTIPLIER = 2.5;
         const FIRST_PARTY_MULTIPLIER = 1.5;
+        const AWARD_MULTIPLIER = 1.2;
         const BLACKLISTED_GENRES = [32, 33, 34, 35, 36, 37]; 
 
         function populateYearDropdown() { 
@@ -79,11 +80,16 @@
                     score = Math.round(score * SPORT_MULTIPLIER);
                 }
                 
-                // 2. First Party Publisher Multiplier (Case-insensitive check)
+                // 2. First Party Publisher Multiplier
                 if (game.publishers && game.publishers.some(pub => 
                     pub.toLowerCase().includes('sony') || pub.toLowerCase().includes('nintendo')
                 )) {
                     score = Math.round(score * FIRST_PARTY_MULTIPLIER);
+                }
+
+                // 3. Award Keyword Multiplier
+                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('award'))) {
+                    score = Math.round(score * AWARD_MULTIPLIER);
                 }
                 
                 game.hype_score = score;
