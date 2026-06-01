@@ -30,7 +30,7 @@
     <div class="container"> 
         <header> 
             <h1>The Notable Games Index</h1> 
-            <p class="version-tag">Version 5.2.2</p> 
+            <p class="version-tag">Version 5.2.1</p> 
         </header> 
         <div class="controls"> 
             <label>Select Year:</label> 
@@ -49,7 +49,9 @@
         const PLATFORM_NAMES = { 75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' }; 
         
         const GENRE_SPORT_ID = 14;
-        const SPORT_MULTIPLIER = 4.0;
+        const SPORT_MULTIPLIER = 2.5;
+        const SPORT_MINIMUM_THRESHOLD = 50;
+        const SPORT_BONUS = 60;
         const FIRST_PARTY_MULTIPLIER = 1.5;
         const AWARD_MULTIPLIER = 1.2;
         const BLACKLISTED_CATEGORIES = [1, 2, 3, 4, 5, 6, 7]; 
@@ -77,6 +79,9 @@
                 
                 if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
                     score = Math.round(score * SPORT_MULTIPLIER);
+                    if (score < SPORT_MINIMUM_THRESHOLD) {
+                        score += SPORT_BONUS;
+                    }
                 }
                 
                 if (game.publishers && game.publishers.some(pub => 
