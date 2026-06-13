@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.4.7</p>
+            <p class="version-tag">Version 5.4.6</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -59,7 +59,7 @@
         // --- Scoring constants ---
         const GENRE_SPORT_ID = 14;
         const SPORT_MULTIPLIER = 2.5;
-        const AFFILIATED_MULTIPLIER = 7.0;
+        const AFFILIATED_MULTIPLIER = 3.0;
         const AWARD_MULTIPLIER = 1.2;
 
         // v5.3.0: Major league sports titles receive an additional boost on top of
@@ -139,10 +139,21 @@
             'housemarque',
             'bluepoint games',
             'nixxes software',
-            'namco',
-            'bandai namco',
             'bungie'
         ];
+
+        // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
+        // list. Namco's relationship with Sony is deeper than a typical third party —
+        // the PS1 hardware was essentially built around Namco's System 22 arcade board,
+        // Ridge Racer and Tekken defined the PS1 launch, and Sony published Namco titles
+        // in Western territories. However Namco was never owned by Sony, so it sits in
+        // its own category: above general third parties but handled separately from the
+        // core Nintendo/Sony owned studios.
+        // Effective multiplier: 3.0x (affiliated) × 2.0x (Namco) = 6.0x total.
+        // This also addresses the early PS1 Tekken/Ridge Racer data sparsity problem
+        // identified during calibration.
+        const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
+        const NAMCO_MULTIPLIER = 2.0;
 
         // v5.4.4: Mainstream titles with massive console audiences that generate
         // genuine cultural penetration but whose players skew away from IGDB engagement.
@@ -176,6 +187,13 @@
         function isMajorLeagueTitle(game) {
             if (!game.slug) return false;
             return MAJOR_LEAGUE_TITLE_SLUGS.some(keyword => game.slug.includes(keyword));
+        }
+
+        function isNamcoTitle(game) {
+            if (!game.publishers) return false;
+            return game.publishers.some(pub =>
+                NAMCO_PUBLISHERS.some(n => pub.toLowerCase().includes(n))
+            );
         }
 
         function isAffiliatedPublisher(game) {
@@ -221,6 +239,14 @@
                 // Replaces the narrower first-party check from v5.2.0.
                 if (isAffiliatedPublisher(game)) {
                     score = Math.round(score * AFFILIATED_MULTIPLIER);
+                }
+
+                // v5.4.8: Namco-specific additional boost applied after the base affiliated
+                // multiplier. Namco is handled separately because its Sony relationship
+                // is uniquely deep (PS1 hardware co-development, launch titles) but stops
+                // short of full ownership. Effective total: 3.0x × 2.0x = 6.0x.
+                if (isNamcoTitle(game)) {
+                    score = Math.round(score * NAMCO_MULTIPLIER);
                 }
 
                 // Award keyword boost
