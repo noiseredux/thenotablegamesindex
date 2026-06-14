@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.5.0</p>
+            <p class="version-tag">Version 5.4.6</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -157,7 +157,35 @@
         // NAMCO_MULTIPLIER (5.5x): Applied to all other Namco/Bandai Namco titles
         //   (arcade classics, PS2 onward, modern era) where IGDB engagement is higher
         //   and the base correction is sufficient.
-        const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
+        // v5.5.1: Switched from publisher-based to slug-based Namco detection.
+        // Bandai Namco publishes a large volume of licensed anime games (Digimon,
+        // Dragon Ball, One Piece etc) that are Bandai IP — reliable income generators
+        // but not part of the core Namco lineage. The slug whitelist ensures only
+        // genuine Namco franchise DNA titles receive the boost.
+        const NAMCO_TITLE_SLUGS = [
+            'ridge-racer',
+            'tekken',
+            'soulcalibur',
+            'soul-blade',
+            'soul-edge',
+            'tales-of',
+            'ace-combat',
+            'dark-souls',
+            'elden-ring',
+            'armored-core',
+            'pac-man',
+            'galaga',
+            'dig-dug',
+            'namco-museum',
+            'katamari',
+            'mr-driller',
+            'time-crisis',
+            'point-blank',
+            'rage-racer',
+            'splatterhouse',
+            'dragon-buster',
+            'xevious'
+        ];
         const NAMCO_MULTIPLIER = 5.5;
         const NAMCO_ERA_MULTIPLIER = 7.5;
         const NAMCO_ERA_START = 1994;
@@ -198,10 +226,8 @@
         }
 
         function isNamcoTitle(game) {
-            if (!game.publishers) return false;
-            return game.publishers.some(pub =>
-                NAMCO_PUBLISHERS.some(n => pub.toLowerCase().includes(n))
-            );
+            if (!game.slug) return false;
+            return NAMCO_TITLE_SLUGS.some(keyword => game.slug.includes(keyword));
         }
 
         function isAffiliatedPublisher(game) {
