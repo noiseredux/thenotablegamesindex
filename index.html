@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.4.9</p>
+            <p class="version-tag">Version 5.4.6</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -142,18 +142,26 @@
             'bungie'
         ];
 
-        // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
-        // list. Namco's relationship with Sony is deeper than a typical third party —
-        // the PS1 hardware was essentially built around Namco's System 22 arcade board,
-        // Ridge Racer and Tekken defined the PS1 launch, and Sony published Namco titles
-        // in Western territories. However Namco was never owned by Sony, so it sits in
-        // its own category: above general third parties but handled separately from the
-        // core Nintendo/Sony owned studios.
-        // Effective multiplier: 3.0x (affiliated) × 2.0x (Namco) = 6.0x total.
-        // This also addresses the early PS1 Tekken/Ridge Racer data sparsity problem
-        // identified during calibration.
+        // v5.5.0: Namco two-tier era-aware boost.
+        // Namco's relationship with Sony is uniquely deep — the PS1 hardware was built
+        // around Namco's System 22 arcade board, Ridge Racer and Tekken defined the
+        // PS1 launch, and Sony published Namco titles in Western territories. Namco is
+        // handled separately from the core affiliated list because it was never owned
+        // by Sony, but sits in its own category above general third parties.
+        //
+        // Two multipliers reflect two distinct data realities:
+        // NAMCO_ERA_MULTIPLIER (7.5x): Applied to PS1-era titles (1994-2000) where
+        //   IGDB data is systemically sparse. Calibrated against Ridge Racer, Tekken,
+        //   R4, Tales of Destiny etc — flagship titles run ~30-35% below target
+        //   without the stronger correction.
+        // NAMCO_MULTIPLIER (5.5x): Applied to all other Namco/Bandai Namco titles
+        //   (arcade classics, PS2 onward, modern era) where IGDB engagement is higher
+        //   and the base correction is sufficient.
         const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
         const NAMCO_MULTIPLIER = 5.5;
+        const NAMCO_ERA_MULTIPLIER = 7.5;
+        const NAMCO_ERA_START = 1994;
+        const NAMCO_ERA_END = 2000;
 
         // v5.4.4: Mainstream titles with massive console audiences that generate
         // genuine cultural penetration but whose players skew away from IGDB engagement.
@@ -241,12 +249,16 @@
                     score = Math.round(score * AFFILIATED_MULTIPLIER);
                 }
 
-                // v5.4.8: Namco-specific additional boost applied after the base affiliated
-                // multiplier. Namco is handled separately because its Sony relationship
-                // is uniquely deep (PS1 hardware co-development, launch titles) but stops
-                // short of full ownership. Effective total: 3.0x × 2.0x = 6.0x.
+                // v5.5.0: Namco era-aware two-tier boost.
+                // PS1 era (1994-2000) gets 7.5x to correct systematic IGDB data sparsity.
+                // All other Namco titles get 5.5x.
                 if (isNamcoTitle(game)) {
-                    score = Math.round(score * NAMCO_MULTIPLIER);
+                    const year = game.release_year;
+                    if (year >= NAMCO_ERA_START && year <= NAMCO_ERA_END) {
+                        score = Math.round(score * NAMCO_ERA_MULTIPLIER);
+                    } else {
+                        score = Math.round(score * NAMCO_MULTIPLIER);
+                    }
                 }
 
                 // Award keyword boost
