@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.6.2</p>
+            <p class="version-tag">Version 6.1.1</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -56,18 +56,32 @@
         const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
         const PLATFORM_NAMES = { 75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' };
 
-        // --- Scoring constants ---
-        const GENRE_SPORT_ID = 14;
-        const SPORT_MULTIPLIER = 2.5;
-        const AFFILIATED_MULTIPLIER = 5.0;
-        const AWARD_MULTIPLIER = 1.2;
+        // IGDB Category Blacklist: 1=DLC, 2=Expansion, 3=Bundle, 4=Standalone Expansion, 5=Mod, 6=Episode, 7=Season
+        const BLACKLISTED_CATEGORIES = [1, 2, 3, 4, 5, 6, 7];
 
-        // v5.3.0: Major league sports titles receive an additional boost on top of
-        // the standard SPORT_MULTIPLIER. These franchises have massive console-first
-        // audiences that don't engage with IGDB, causing severe underrepresentation.
+        // --- Minimum review threshold ---
+        // v6.0.0: A game must have at least 7 combined user + critic reviews to qualify.
+        // Prevents obscure or unreviewed titles from dominating on a perfect score
+        // from a tiny sample, while remaining permissive enough not to punish older
+        // or niche titles that simply didn't receive wide coverage.
+        const MIN_COMBINED_REVIEWS = 7;
+
+        // --- Boost multipliers (all neutral at v6.0.0 launch) ---
+        // Set any of these above 1.0 to apply a boost to that category.
+        // Philosophy: correct the data's blind spots, not the games themselves.
+
+        // v6.0.0: Sports genre boost. Sports titles on consoles skew toward audiences
+        // that don't engage with IGDB, causing systematic underrepresentation in
+        // review counts that drags down their confidence weight unfairly.
+        // Set above 1.0 to correct for that floor.
+        const GENRE_SPORT_ID = 14;
+        const SPORT_MULTIPLIER = 1.0;
+
+        // v6.0.0: Major league sports franchises (Madden, MLB The Show, NHL, NASCAR,
+        // etc.) suffer the sports problem more acutely than general sports titles.
         // FC/FIFA and NBA 2K are intentionally excluded — their IGDB engagement
         // already reflects real-world mindshare reasonably well.
-        // Target: Madden lands just below FC; MLB/NHL/NASCAR land below Madden.
+        // Applied after SPORT_MULTIPLIER; effective total = SPORT × MAJOR_LEAGUE.
         const MAJOR_LEAGUE_TITLE_SLUGS = [
             'madden',
             'mlb-the-show',
@@ -76,15 +90,26 @@
             'ea-sports-college-football',
             'pga-tour-2k'
         ];
-        const MAJOR_LEAGUE_MULTIPLIER = 6.5;
+        const MAJOR_LEAGUE_MULTIPLIER = 1.0;
 
-        // v5.4.0: Expanded affiliated publisher list covering the full Nintendo and
-        // Sony lineages, including second-party and historically close studios.
-        // These publishers are treated identically to first-party for scoring purposes
-        // because their histories are inseparable from the Nintendo/Sony story.
+        // v6.0.0: Mainstream franchises (COD, etc.) with massive console audiences
+        // whose players skew away from IGDB engagement. Gentler correction than the
+        // major league sports tier — these titles do appear in the data, they're just
+        // chronically underweighted relative to their true cultural penetration.
+        const MAINSTREAM_TITLE_SLUGS = [
+            'call-of-duty',
+            'madden'
+        ];
+        const MAINSTREAM_MULTIPLIER = 1.0;
+
+        // v6.0.0: Nintendo + Sony affiliated publisher boost.
+        // This site concentrates on the Nintendo/Sony lineages, so it is intentional
+        // and transparent that those publishers receive a mild lift to reflect the
+        // editorial focus. Set above 1.0 when calibration warrants it.
         //
-        // Nintendo lineage: HAL, Game Freak, Hudson (first NES third party, co-developed
-        // HuCARD), Rare (pre-Xbox), Intelligent Systems, Monolith Soft, Retro, etc.
+        // Nintendo lineage: HAL, Game Freak, Hudson (first NES third party,
+        // co-developed HuCARD), Rare (pre-Xbox), Intelligent Systems, Monolith Soft,
+        // Retro, etc.
         //
         // Sony lineage: Psygnosis (published ~half of Sony's Sega CD catalog and was
         // acquired during that era), Polyphony, Naughty Dog, Insomniac, Guerrilla,
@@ -141,124 +166,147 @@
             'nixxes software',
             'bungie'
         ];
+        // v6.1.0: Activated at 1.5x. Nintendo/Sony affiliated titles are the editorial
+        // focus of this index, and their IGDB engagement systematically underrepresents
+        // their cultural weight on those platforms. Starting conservative — tune upward
+        // if Marathon/Pokémon/etc. still feel too low after the confidence floor fix.
+        const AFFILIATED_MULTIPLIER = 1.5;
 
-        // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
-        // list. Namco's relationship with Sony is deeper than a typical third party —
-        // the PS1 hardware was essentially built around Namco's System 22 arcade board,
-        // Ridge Racer and Tekken defined the PS1 launch, and Sony published Namco titles
-        // in Western territories. However Namco was never owned by Sony, so it sits in
-        // its own category: above general third parties but handled separately from the
-        // core Nintendo/Sony owned studios.
-        // Effective multiplier: 3.0x (affiliated) × 2.0x (Namco) = 6.0x total.
-        // This also addresses the early PS1 Tekken/Ridge Racer data sparsity problem
-        // identified during calibration.
+        // v6.0.0: Namco-specific boost, separate from the general affiliated list.
+        // Namco's relationship with Sony is uniquely deep — the PS1 hardware was
+        // essentially built around Namco's System 22 arcade board; Ridge Racer and
+        // Tekken defined the PS1 launch; Sony published Namco titles in Western
+        // territories. Namco was never owned by Sony, so it sits in its own tier:
+        // above general third parties but handled separately from core first-party.
+        // When active, effective total = AFFILIATED × NAMCO.
         const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
-        const NAMCO_MULTIPLIER = 6.0;
+        // v6.1.0: Activated at 1.3x (effective total with affiliated: 1.95x).
+        // v6.1.1: Raised to 1.6x (effective total with affiliated: 2.4x) after
+        // calibration against 2026 data showed Namco titles (e.g. Directive 8020)
+        // sitting ~3 positions too low. The extra headroom better reflects Namco's
+        // tier above general third parties without crowding out pure first-party titles.
+        const NAMCO_MULTIPLIER = 1.6;
 
-        // v5.4.4: Mainstream titles with massive console audiences that generate
-        // genuine cultural penetration but whose players skew away from IGDB engagement.
-        // Less aggressive than the major league sports correction — these titles do
-        // appear in IGDB data, they're just chronically underweighted relative to
-        // their true "everyone is playing this" footprint.
-        // Philosophy: correct the floor, accept the ceiling.
-        const MAINSTREAM_TITLE_SLUGS = [
-            'call-of-duty',
-            'madden'
-        ];
-        const MAINSTREAM_MULTIPLIER = 2.0;
+        // --- Scoring engine ---
 
-        // IGDB Category Blacklist: 1=DLC, 2=Expansion, 3=Bundle, 4=Standalone Expansion, 5=Mod, 6=Episode, 7=Season
-        const BLACKLISTED_CATEGORIES = [1, 2, 3, 4, 5, 6, 7];
+        // v6.0.0: Confidence-weighted composite score.
+        //
+        // rawScore = (userScore × 0.5) + (criticScore × 0.5)
+        //   — 50/50 split; adjust weights here if calibration suggests otherwise.
+        //   — If only one source exists, it carries full weight.
+        //   — Returns null if neither source is present.
+        //
+        // confidenceWeight = log(totalReviews + 1) / log(maxReviews + 1)
+        //   — Normalises to 0–1 relative to the most-reviewed game in the current set.
+        //   — Log scaling softens the curve so mid-tier review counts aren't
+        //     unfairly crushed against titles with orders-of-magnitude more reviews.
+        //
+        // finalScore = rawScore × confidenceWeight × [applicable multipliers]
+        //   — Multipliers stack multiplicatively in the order: sport → major league
+        //     → mainstream → affiliated → namco.
+        //   — All multipliers default to 1.0 (neutral) at launch.
 
-        function populateYearDropdown() {
-            const select = document.getElementById('yearSelect');
-            for (let year = 2026; year >= 1977; year--) {
-                const opt = document.createElement('option');
-                opt.value = year; opt.textContent = year;
-                select.appendChild(opt);
-            }
+        const USER_WEIGHT   = 0.5;
+        const CRITIC_WEIGHT = 0.5;
+
+        function computeRawScore(game) {
+            const hasUser   = game.rating   !== null && game.rating_count   > 0;
+            const hasCritic = game.aggregated_rating !== null && game.aggregated_rating_count > 0;
+            if (!hasUser && !hasCritic) return null;
+            if (hasUser && hasCritic) return (game.rating * USER_WEIGHT) + (game.aggregated_rating * CRITIC_WEIGHT);
+            if (hasUser)   return game.rating;
+            return game.aggregated_rating;
+        }
+
+        // v6.1.0: Added a floor of 0.4 to the confidence curve so that even a game
+        // sitting at the minimum review threshold (7 combined) still contributes 40%
+        // of its raw score to the final result. Without the floor, low-review-count
+        // titles with genuinely high scores (Marathon, Pokémon) were being crushed
+        // relative to mid-tier games that happened to accumulate more IGDB activity.
+        // The log curve then lifts confidence toward 1.0 as review counts grow,
+        // preserving the relative reward for well-reviewed titles.
+        const CONFIDENCE_FLOOR = 0.4;
+
+        function computeConfidenceWeight(game, maxReviews) {
+            const total = (game.rating_count || 0) + (game.aggregated_rating_count || 0);
+            if (maxReviews <= 0) return 0;
+            const logWeight = Math.log(total + 1) / Math.log(maxReviews + 1);
+            return CONFIDENCE_FLOOR + (1 - CONFIDENCE_FLOOR) * logWeight;
         }
 
         function isMainstreamTitle(game) {
             if (!game.slug) return false;
-            return MAINSTREAM_TITLE_SLUGS.some(keyword => game.slug.includes(keyword));
+            return MAINSTREAM_TITLE_SLUGS.some(kw => game.slug.includes(kw));
         }
 
         function isMajorLeagueTitle(game) {
             if (!game.slug) return false;
-            return MAJOR_LEAGUE_TITLE_SLUGS.some(keyword => game.slug.includes(keyword));
+            return MAJOR_LEAGUE_TITLE_SLUGS.some(kw => game.slug.includes(kw));
         }
 
         function isNamcoTitle(game) {
             if (!game.publishers) return false;
-            return game.publishers.some(pub =>
-                NAMCO_PUBLISHERS.some(n => pub.toLowerCase().includes(n))
-            );
+            return game.publishers.some(pub => NAMCO_PUBLISHERS.some(n => pub.toLowerCase().includes(n)));
         }
 
         function isAffiliatedPublisher(game) {
             if (!game.publishers) return false;
-            return game.publishers.some(pub =>
-                AFFILIATED_PUBLISHERS.some(aff => pub.toLowerCase().includes(aff))
-            );
+            return game.publishers.some(pub => AFFILIATED_PUBLISHERS.some(aff => pub.toLowerCase().includes(aff)));
         }
 
         function displayGames(gamesList) {
             const content = document.getElementById('content');
 
+            // Platform and category filter
             let filtered = gamesList.filter(game => {
-                const isCorrectPlatform = game.platforms.some(id => ALLOWED_PLATFORMS.includes(id));
+                const isCorrectPlatform    = game.platforms.some(id => ALLOWED_PLATFORMS.includes(id));
                 const isBlacklistedCategory = game.category && BLACKLISTED_CATEGORIES.includes(game.category);
                 return isCorrectPlatform && !isBlacklistedCategory;
             });
 
-            filtered.forEach(game => {
-                let score = (game.reviews || 0) + (game.follows || 0) + (game.hypes || 0);
-
-                // Standard sports genre boost
-                if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
-                    score = Math.round(score * SPORT_MULTIPLIER);
-                }
-
-                // v5.3.0: Additional major league boost for chronically underrepresented
-                // console-dominant sports franchises. Applied after sports multiplier.
-                if (isMajorLeagueTitle(game)) {
-                    score = Math.round(score * MAJOR_LEAGUE_MULTIPLIER);
-                }
-
-                // v5.4.4: Mainstream title boost for franchises with massive cultural
-                // penetration that IGDB systematically underweights. Gentler than the
-                // sports correction — these titles do appear in the data, they're just
-                // underrepresented relative to their true "everyone is playing this" footprint.
-                if (isMainstreamTitle(game)) {
-                    score = Math.round(score * MAINSTREAM_MULTIPLIER);
-                }
-
-                // v5.4.0: Affiliated publisher boost — covers the full Nintendo and Sony
-                // lineages including second-party and historically close studios.
-                // Replaces the narrower first-party check from v5.2.0.
-                if (isAffiliatedPublisher(game)) {
-                    score = Math.round(score * AFFILIATED_MULTIPLIER);
-                }
-
-                // v5.4.8: Namco-specific additional boost applied after the base affiliated
-                // multiplier. Namco is handled separately because its Sony relationship
-                // is uniquely deep (PS1 hardware co-development, launch titles) but stops
-                // short of full ownership. Effective total: 3.0x × 2.0x = 6.0x.
-                if (isNamcoTitle(game)) {
-                    score = Math.round(score * NAMCO_MULTIPLIER);
-                }
-
-                // Award keyword boost
-                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('award'))) {
-                    score = Math.round(score * AWARD_MULTIPLIER);
-                }
-
-                game.hype_score = score;
+            // Minimum combined review threshold
+            filtered = filtered.filter(game => {
+                const total = (game.rating_count || 0) + (game.aggregated_rating_count || 0);
+                return total >= MIN_COMBINED_REVIEWS;
             });
 
-            filtered = filtered.filter(game => game.hype_score > 0);
-            filtered.sort((a, b) => b.hype_score - a.hype_score);
+            // Determine max combined review count for confidence normalisation
+            const maxReviews = filtered.reduce((max, game) => {
+                const total = (game.rating_count || 0) + (game.aggregated_rating_count || 0);
+                return Math.max(max, total);
+            }, 0);
+
+            // Score each game
+            filtered.forEach(game => {
+                const rawScore = computeRawScore(game);
+                if (rawScore === null) { game.final_score = 0; return; }
+
+                const confidence = computeConfidenceWeight(game, maxReviews);
+                let score = rawScore * confidence;
+
+                // Multipliers — all 1.0 at launch, stack multiplicatively
+                if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
+                    score *= SPORT_MULTIPLIER;
+                }
+                if (isMajorLeagueTitle(game)) {
+                    score *= MAJOR_LEAGUE_MULTIPLIER;
+                }
+                if (isMainstreamTitle(game)) {
+                    score *= MAINSTREAM_MULTIPLIER;
+                }
+                if (isAffiliatedPublisher(game)) {
+                    score *= AFFILIATED_MULTIPLIER;
+                }
+                if (isNamcoTitle(game)) {
+                    score *= NAMCO_MULTIPLIER;
+                }
+
+                game.final_score = score;
+            });
+
+            // Drop games with no scoreable data
+            filtered = filtered.filter(game => game.final_score > 0);
+            filtered.sort((a, b) => b.final_score - a.final_score);
 
             if (!filtered.length) {
                 content.innerHTML = '<div class="loading">No records found for this year.</div>';
@@ -273,14 +321,20 @@
                 card.className = 'game-card';
                 card.href = `https://www.igdb.com/games/${game.slug}`;
                 card.target = '_blank';
-                const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
+                const coverUrl = game.cover
+                    ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg`
+                    : '';
+
+                // Display score as a 0–100 value rounded to one decimal
+                const displayScore = game.final_score.toFixed(1);
+
                 card.innerHTML = `
                     <div class="game-rank">#${index + 1}</div>
                     <div class="game-image-container">${game.cover ? `<img class="game-image" src="${coverUrl}" alt="${game.name} cover">` : ''}</div>
                     <div class="game-info">
                         <div class="game-title">${game.name}</div>
                         <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
-                            Hype Score: <span class="engagement-value">${game.hype_score}</span>
+                            Score: <span class="engagement-value">${displayScore}</span>
                         </div>
                         <div style="margin-top: 4px;">
                             ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
@@ -291,6 +345,15 @@
 
             content.innerHTML = '';
             content.appendChild(grid);
+        }
+
+        function populateYearDropdown() {
+            const select = document.getElementById('yearSelect');
+            for (let year = 2026; year >= 1977; year--) {
+                const opt = document.createElement('option');
+                opt.value = year; opt.textContent = year;
+                select.appendChild(opt);
+            }
         }
 
         async function loadGames(year) {
