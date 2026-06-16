@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Notable Games Index</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --ps-blue: #003087;
+            --ps-blue-light: #0070cc;
+            --nin-red: #e4000f;
+            --bg: #f4f4f9;
+            --text: #111118;
+            --text-muted: #8888aa;
+        }
+        body { background-color: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 300; margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.05); }
+        header { background: linear-gradient(135deg, var(--ps-blue) 0%, #001a4d 100%); border-bottom: 4px solid var(--nin-red); padding: 3rem 1.5rem; text-align: center; }
+        header h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 7vw, 4.2rem); color: #fff; line-height: 0.9; text-transform: uppercase; margin: 0; }
+        .version-tag { font-size: 0.8rem; letter-spacing: 0.3em; text-transform: uppercase; color: #ffffff; opacity: 0.8; margin-top: 0.75rem; font-weight: 500; }
+        .controls { background: #e2e2ea; padding: 15px; display: flex; justify-content: center; align-items: center; gap: 15px; }
+        .controls select { padding: 8px 20px; font-weight: 700; border: 2px solid var(--ps-blue); border-radius: 4px; color: var(--ps-blue); cursor: pointer; }
+        .loading { text-align: center; padding: 80px; font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--ps-blue); }
+        .games-grid { display: flex; flex-direction: column; gap: 12px; padding: 30px; max-width: 900px; margin: 0 auto; }
+        .game-card { background: white; border: 1px solid #dcdce8; border-radius: 8px; display: flex; align-items: center; padding: 14px; gap: 20px; text-decoration: none; color: inherit; transition: all 0.2s ease; }
+        .game-card:hover { transform: translateX(8px); border-color: var(--ps-blue-light); }
+        .game-rank { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--ps-blue); min-width: 65px; text-align: center; }
+        .game-image-container { width: 70px; height: 94px; background: #eee; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+        .game-image { width: 100%; height: 100%; object-fit: cover; }
+        .game-title { font-weight: 700; font-size: 1.2rem; color: var(--text); }
+        .engagement-value { color: var(--nin-red); font-weight: 700; }
+        .platform-tag { background: #edf2f7; color: #4a5568; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; margin-right: 5px; text-transform: uppercase; font-weight: 700; border: 1px solid #cbd5e0; }
+        footer { padding: 50px; text-align: center; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid #e2e2ea; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Notable Games Index</h1>
+            <p class="version-tag">Version 5.6.1</p>
+        </header>
+        <div class="controls">
+            <label>Select Year:</label>
+            <select id="yearSelect"></select>
+        </div>
+        <div id="content"></div>
+        <footer>
+            Built by noiseredux &nbsp;·&nbsp; Data powered by IGDB <br>
+            A curated record of cultural mindshare for the Sony, Nintendo, and Apple lineages.
+        </footer>
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3_IE8KU_qeQ4JCgTnoaF1w--vPUemtxHjW5Aq3aF_cUN8eqmYny7xlAlbT-wMp4Qj/exec';
+
+        const ALLOWED_PLATFORMS = [75, 14, 39, 18, 99, 19, 58, 4, 21, 5, 41, 130, 508, 33, 22, 24, 20, 37, 27, 53, 59, 68, 117, 78, 57, 123, 87, 7, 8, 9, 48, 167, 165, 38, 46, 51, 77, 121, 306];
+        const PLATFORM_NAMES = { 75: 'Apple II', 14: 'Mac', 39: 'iOS', 18: 'NES', 99: 'Famicom', 19: 'SNES', 58: 'S.Famicom', 4: 'N64', 21: 'GameCube', 5: 'Wii', 41: 'Wii U', 130: 'Switch', 508: 'Switch 2', 33: 'GB', 22: 'GBC', 24: 'GBA', 20: 'DS', 37: '3DS', 27: 'MSX', 53: 'MSX2', 59: 'Atari 2600', 68: 'Coleco', 117: 'CDi', 78: 'Sega CD', 57: 'WS', 123: 'WSC', 87: 'VB', 7: 'PS1', 8: 'PS2', 9: 'PS3', 48: 'PS4', 167: 'PS5', 165: 'PSVR', 38: 'PSP', 46: 'Vita', 51: 'FDS', 77: 'X1', 121: 'X68k', 306: 'Satella' };
+
+        // --- Scoring constants ---
+        const GENRE_SPORT_ID = 14;
+        const SPORT_MULTIPLIER = 2.5;
+        const AFFILIATED_MULTIPLIER = 5.0;
+        const AWARD_MULTIPLIER = 1.2;
+
+        // v5.3.0: Major league sports titles receive an additional boost on top of
+        // the standard SPORT_MULTIPLIER. These franchises have massive console-first
+        // audiences that don't engage with IGDB, causing severe underrepresentation.
+        // FC/FIFA and NBA 2K are intentionally excluded — their IGDB engagement
+        // already reflects real-world mindshare reasonably well.
+        // Target: Madden lands just below FC; MLB/NHL/NASCAR land below Madden.
+        const MAJOR_LEAGUE_TITLE_SLUGS = [
+            'madden',
+            'mlb-the-show',
+            'nhl-',
+            'nascar',
+            'ea-sports-college-football',
+            'pga-tour-2k'
+        ];
+        const MAJOR_LEAGUE_MULTIPLIER = 6.5;
+
+        // v5.4.0: Expanded affiliated publisher list covering the full Nintendo and
+        // Sony lineages, including second-party and historically close studios.
+        // These publishers are treated identically to first-party for scoring purposes
+        // because their histories are inseparable from the Nintendo/Sony story.
+        //
+        // Nintendo lineage: HAL, Game Freak, Hudson (first NES third party, co-developed
+        // HuCARD), Rare (pre-Xbox), Intelligent Systems, Monolith Soft, Retro, etc.
+        //
+        // Sony lineage: Psygnosis (published ~half of Sony's Sega CD catalog and was
+        // acquired during that era), Polyphony, Naughty Dog, Insomniac, Guerrilla,
+        // CSG/Sony Imagesoft (the early US publishing arm), and all current
+        // PlayStation Studios subsidiaries.
+        const AFFILIATED_PUBLISHERS = [
+            // Nintendo lineage
+            'nintendo',
+            'hal laboratory',
+            'hal america',
+            'game freak',
+            'monolith soft',
+            'retro studios',
+            'intelligent systems',
+            'creatures inc',
+            'nd cube',
+            'grezzo',
+            'camelot',
+            'alphadream',
+            'brownie brown',
+            '1-up studio',
+            'jupiter corporation',
+            'ambrella',
+            'skip ltd',
+            'rare',
+            'rareware',
+            'hudson soft',
+            'hudson entertainment',
+            'ape inc',
+
+            // Sony lineage
+            'sony',
+            'csg imagesoft',
+            'sony imagesoft',
+            'psygnosis',
+            'studio liverpool',
+            'guerrilla games',
+            'naughty dog',
+            'insomniac games',
+            'sucker punch',
+            'media molecule',
+            'evolution studios',
+            'polyphony digital',
+            'japan studio',
+            'team asobi',
+            'bend studio',
+            'san diego studio',
+            'zipper interactive',
+            'bigbig studios',
+            'ready at dawn',
+            'firesprite',
+            'housemarque',
+            'bluepoint games',
+            'nixxes software',
+            'bungie'
+        ];
+
+        // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
+        // list. Namco's relationship with Sony is deeper than a typical third party —
+        // the PS1 hardware was essentially built around Namco's System 22 arcade board,
+        // Ridge Racer and Tekken defined the PS1 launch, and Sony published Namco titles
+        // in Western territories. However Namco was never owned by Sony, so it sits in
+        // its own category: above general third parties but handled separately from the
+        // core Nintendo/Sony owned studios.
+        // Effective multiplier: 3.0x (affiliated) × 2.0x (Namco) = 6.0x total.
+        // This also addresses the early PS1 Tekken/Ridge Racer data sparsity problem
+        // identified during calibration.
+        const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
+        const NAMCO_MULTIPLIER = 5.5;
+
+        // v5.4.4: Mainstream titles with massive console audiences that generate
+        // genuine cultural penetration but whose players skew away from IGDB engagement.
+        // Less aggressive than the major league sports correction — these titles do
+        // appear in IGDB data, they're just chronically underweighted relative to
+        // their true "everyone is playing this" footprint.
+        // Philosophy: correct the floor, accept the ceiling.
+        const MAINSTREAM_TITLE_SLUGS = [
+            'call-of-duty',
+            'madden'
+        ];
+        const MAINSTREAM_MULTIPLIER = 2.0;
+
+        // IGDB Category Blacklist: 1=DLC, 2=Expansion, 3=Bundle, 4=Standalone Expansion, 5=Mod, 6=Episode, 7=Season
+        const BLACKLISTED_CATEGORIES = [1, 2, 3, 4, 5, 6, 7];
+
+        function populateYearDropdown() {
+            const select = document.getElementById('yearSelect');
+            for (let year = 2026; year >= 1977; year--) {
+                const opt = document.createElement('option');
+                opt.value = year; opt.textContent = year;
+                select.appendChild(opt);
+            }
+        }
+
+        function isMainstreamTitle(game) {
+            if (!game.slug) return false;
+            return MAINSTREAM_TITLE_SLUGS.some(keyword => game.slug.includes(keyword));
+        }
+
+        function isMajorLeagueTitle(game) {
+            if (!game.slug) return false;
+            return MAJOR_LEAGUE_TITLE_SLUGS.some(keyword => game.slug.includes(keyword));
+        }
+
+        function isNamcoTitle(game) {
+            if (!game.publishers) return false;
+            return game.publishers.some(pub =>
+                NAMCO_PUBLISHERS.some(n => pub.toLowerCase().includes(n))
+            );
+        }
+
+        function isAffiliatedPublisher(game) {
+            if (!game.publishers) return false;
+            return game.publishers.some(pub =>
+                AFFILIATED_PUBLISHERS.some(aff => pub.toLowerCase().includes(aff))
+            );
+        }
+
+        function displayGames(gamesList) {
+            const content = document.getElementById('content');
+
+            let filtered = gamesList.filter(game => {
+                const isCorrectPlatform = game.platforms.some(id => ALLOWED_PLATFORMS.includes(id));
+                const isBlacklistedCategory = game.category && BLACKLISTED_CATEGORIES.includes(game.category);
+                return isCorrectPlatform && !isBlacklistedCategory;
+            });
+
+            filtered.forEach(game => {
+                let score = (game.reviews || 0) + (game.follows || 0) + (game.hypes || 0);
+
+                // Standard sports genre boost
+                if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
+                    score = Math.round(score * SPORT_MULTIPLIER);
+                }
+
+                // v5.3.0: Additional major league boost for chronically underrepresented
+                // console-dominant sports franchises. Applied after sports multiplier.
+                if (isMajorLeagueTitle(game)) {
+                    score = Math.round(score * MAJOR_LEAGUE_MULTIPLIER);
+                }
+
+                // v5.4.4: Mainstream title boost for franchises with massive cultural
+                // penetration that IGDB systematically underweights. Gentler than the
+                // sports correction — these titles do appear in the data, they're just
+                // underrepresented relative to their true "everyone is playing this" footprint.
+                if (isMainstreamTitle(game)) {
+                    score = Math.round(score * MAINSTREAM_MULTIPLIER);
+                }
+
+                // v5.4.0: Affiliated publisher boost — covers the full Nintendo and Sony
+                // lineages including second-party and historically close studios.
+                // Replaces the narrower first-party check from v5.2.0.
+                if (isAffiliatedPublisher(game)) {
+                    score = Math.round(score * AFFILIATED_MULTIPLIER);
+                }
+
+                // v5.4.8: Namco-specific additional boost applied after the base affiliated
+                // multiplier. Namco is handled separately because its Sony relationship
+                // is uniquely deep (PS1 hardware co-development, launch titles) but stops
+                // short of full ownership. Effective total: 3.0x × 2.0x = 6.0x.
+                if (isNamcoTitle(game)) {
+                    score = Math.round(score * NAMCO_MULTIPLIER);
+                }
+
+                // Award keyword boost
+                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('award'))) {
+                    score = Math.round(score * AWARD_MULTIPLIER);
+                }
+
+                game.hype_score = score;
+            });
+
+            filtered = filtered.filter(game => game.hype_score > 0);
+            filtered.sort((a, b) => b.hype_score - a.hype_score);
+
+            if (!filtered.length) {
+                content.innerHTML = '<div class="loading">No records found for this year.</div>';
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'games-grid';
+
+            filtered.forEach((game, index) => {
+                const card = document.createElement('a');
+                card.className = 'game-card';
+                card.href = `https://www.igdb.com/games/${game.slug}`;
+                card.target = '_blank';
+                const coverUrl = game.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover}.jpg` : '';
+                card.innerHTML = `
+                    <div class="game-rank">#${index + 1}</div>
+                    <div class="game-image-container">${game.cover ? `<img class="game-image" src="${coverUrl}" alt="${game.name} cover">` : ''}</div>
+                    <div class="game-info">
+                        <div class="game-title">${game.name}</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase;">
+                            Hype Score: <span class="engagement-value">${game.hype_score}</span>
+                        </div>
+                        <div style="margin-top: 4px;">
+                            ${game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id)).map(id => `<span class="platform-tag">${PLATFORM_NAMES[id] || id}</span>`).join('')}
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+
+            content.innerHTML = '';
+            content.appendChild(grid);
+        }
+
+        async function loadGames(year) {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading Index...</div>';
+            try {
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?year=${year}&_cb=${Date.now()}`);
+                const data = await response.json();
+                displayGames(data.games || []);
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = `<div class="loading" style="color:red">System Connection Error.</div>`;
+            }
+        }
+
+        populateYearDropdown();
+        document.getElementById('yearSelect').addEventListener('change', e => loadGames(e.target.value));
+        loadGames(2026);
+    </script>
+</body>
+</html>
