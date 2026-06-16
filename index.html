@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.1.3</p>
+            <p class="version-tag">Version 6.1.4</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -269,10 +269,16 @@
             const content = document.getElementById('content');
 
             // Platform and category filter
+            // v6.1.4: Exclude iOS-only titles. iOS (39) is in the allowed list for
+            // games that appear on iOS AND a console, but mobile-only titles
+            // (e.g. Gakuen Idolmaster) were floating too high on thin IGDB data.
+            // If a game's only allowed platform is iOS, it is excluded entirely.
             let filtered = gamesList.filter(game => {
-                const isCorrectPlatform    = game.platforms.some(id => ALLOWED_PLATFORMS.includes(id));
+                const allowedOnGame = game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id));
+                const isCorrectPlatform = allowedOnGame.length > 0;
+                const isIOSOnly = allowedOnGame.length === 1 && allowedOnGame[0] === 39;
                 const isBlacklistedCategory = game.category && BLACKLISTED_CATEGORIES.includes(game.category);
-                return isCorrectPlatform && !isBlacklistedCategory;
+                return isCorrectPlatform && !isIOSOnly && !isBlacklistedCategory;
             });
 
             // Minimum combined review threshold
@@ -295,7 +301,7 @@
                 const confidence = computeConfidenceWeight(game, maxReviews);
                 let score = rawScore * confidence;
 
-                // Multipliers — all 1.0 at launch, stack multiplicatively
+                // Multipliers — stack multiplicatively
                 if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
                     score *= SPORT_MULTIPLIER;
                 }
@@ -305,7 +311,13 @@
                 if (isMainstreamTitle(game)) {
                     score *= MAINSTREAM_MULTIPLIER;
                 }
-                if (isAffiliatedPublisher(game)) {
+                // v6.1.4: Major league titles (MLB, Madden, NHL etc.) skip the
+                // affiliated multiplier. MLB The Show is published by Sony San Diego
+                // and was catching SPORT + MAJOR_LEAGUE + AFFILIATED all at once,
+                // pushing it to #2 in 2024 above Astro Bot and Helldivers 2.
+                // Sports franchises should be corrected for IGDB underrepresentation,
+                // not treated as editorially prioritised first-party titles.
+                if (isAffiliatedPublisher(game) && !isMajorLeagueTitle(game)) {
                     score *= AFFILIATED_MULTIPLIER;
                 }
                 if (isNamcoTitle(game)) {
