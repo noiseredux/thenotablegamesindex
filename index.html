@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.1.4</p>
+            <p class="version-tag">Version 6.1.5</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -198,6 +198,19 @@
         // tier above general third parties without crowding out pure first-party titles.
         const NAMCO_MULTIPLIER = 1.6;
 
+        // v6.1.5: Critical darling bump. Genuinely exceptional non-affiliated titles
+        // (Metaphor: ReFantazio, Clair Obscur: Expedition 33) were getting buried
+        // by the affiliated boost ceiling despite universal critical acclaim. Rather
+        // than softening the affiliated multiplier (which would affect every game,
+        // every year), this is a targeted, narrow rule: if a game's raw composite
+        // score (before any multiplier, including confidence weight) clears the
+        // threshold, it gets a one-time bump. Fires independently of publisher, so
+        // an affiliated title that also clears the threshold gets both boosts —
+        // intentional, since that combination represents genuinely exceptional
+        // first-party work.
+        const CRITICAL_DARLING_THRESHOLD = 85;
+        const CRITICAL_DARLING_MULTIPLIER = 1.3;
+
         // --- Scoring engine ---
 
         // v6.0.0: Confidence-weighted composite score.
@@ -236,7 +249,14 @@
         // relative to mid-tier games that happened to accumulate more IGDB activity.
         // The log curve then lifts confidence toward 1.0 as review counts grow,
         // preserving the relative reward for well-reviewed titles.
-        const CONFIDENCE_FLOOR = 0.4;
+        // v6.1.5: Dropped to 0.25. 0.4 was letting thin-sample flukes (Digimon Story:
+        // Time Stranger — 18 user ratings, 3 critic ratings — sitting at 9.2/8.3)
+        // punch above games with real review volume. Cannot raise MIN_COMBINED_REVIEWS
+        // to compensate since that would exclude legitimate pre-90s titles with
+        // naturally low IGDB coverage. A lower floor still protects Marathon/Pokémon-
+        // tier titles (moderate samples, genuinely high scores) while giving less
+        // benefit of the doubt to titles barely clearing the minimum threshold.
+        const CONFIDENCE_FLOOR = 0.25;
 
         function computeConfidenceWeight(game, maxReviews) {
             const total = (game.rating_count || 0) + (game.aggregated_rating_count || 0);
@@ -300,6 +320,13 @@
 
                 const confidence = computeConfidenceWeight(game, maxReviews);
                 let score = rawScore * confidence;
+
+                // v6.1.5: Critical darling bump fires first, based on raw score
+                // (pre-confidence, pre-multiplier) so it only catches genuinely
+                // exceptional ratings, not games that merely accumulated volume.
+                if (rawScore >= CRITICAL_DARLING_THRESHOLD) {
+                    score *= CRITICAL_DARLING_MULTIPLIER;
+                }
 
                 // Multipliers — stack multiplicatively
                 if (game.genres && game.genres.includes(GENRE_SPORT_ID)) {
