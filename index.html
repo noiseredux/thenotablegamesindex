@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.1.2</p>
+            <p class="version-tag">Version 6.1.3</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -75,10 +75,11 @@
         // review counts that drags down their confidence weight unfairly.
         // Set above 1.0 to correct for that floor.
         const GENRE_SPORT_ID = 14;
-        // v6.1.2: Activated at 1.8x. Sports titles on consoles skew toward audiences
-        // that don't engage with IGDB, causing systematic underrepresentation in
-        // review counts. NBA 2K, FC, Madden all sitting hundreds of places too low.
-        const SPORT_MULTIPLIER = 1.8;
+        // v6.1.2: Activated at 1.8x.
+        // v6.1.3: Dropped to 1.2x — 1.8x was too broad, lifting niche sports titles
+        // (Rematch, Sonic Racing, Inazuma Eleven) that don't need the correction.
+        // A gentle 1.2x nudge for the genre broadly without overwhelming the list.
+        const SPORT_MULTIPLIER = 1.2;
 
         // v6.0.0: Major league sports franchises (Madden, MLB The Show, NHL, NASCAR,
         // etc.) suffer the sports problem more acutely than general sports titles.
@@ -93,10 +94,10 @@
             'ea-sports-college-football',
             'pga-tour-2k'
         ];
-        // v6.1.2: Activated at 1.4x. Madden/MLB/NHL/NASCAR etc. suffer the sports
-        // problem more acutely than general sports titles — their audiences are even
-        // less represented on IGDB. Stacks on top of SPORT_MULTIPLIER.
-        const MAJOR_LEAGUE_MULTIPLIER = 1.4;
+        // v6.1.2: Activated at 1.4x.
+        // v6.1.3: Dropped to 1.3x — stacks on SPORT_MULTIPLIER for Madden/NFL/NASCAR
+        // tier. Effective total with sport: 1.2 × 1.6 × 1.3 = ~2.5x (down from 4.0x).
+        const MAJOR_LEAGUE_MULTIPLIER = 1.3;
 
         // v6.0.0: Mainstream franchises (COD, etc.) with massive console audiences
         // whose players skew away from IGDB engagement. Gentler correction than the
