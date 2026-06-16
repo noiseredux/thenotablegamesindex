@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.1.5</p>
+            <p class="version-tag">Version 6.1.6</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -196,7 +196,13 @@
         // calibration against 2026 data showed Namco titles (e.g. Directive 8020)
         // sitting ~3 positions too low. The extra headroom better reflects Namco's
         // tier above general third parties without crowding out pure first-party titles.
-        const NAMCO_MULTIPLIER = 1.6;
+        // v6.1.6: Dropped to 1.4x. At 1.6x, Namco's multiplier exceeded Affiliated's
+        // 1.5x, which structurally inverted the intended hierarchy — a Namco title
+        // (Dragon Ball Gekishin Squadra, 80.8) outranked a core Nintendo first-party
+        // title (Metroid Prime 4: Beyond, 80.1) purely because Namco's multiplier was
+        // larger, regardless of underlying merit. Namco must sit below Affiliated as
+        // a structural guarantee, not something that happens to work out per game.
+        const NAMCO_MULTIPLIER = 1.4;
 
         // v6.1.5: Critical darling bump. Genuinely exceptional non-affiliated titles
         // (Metaphor: ReFantazio, Clair Obscur: Expedition 33) were getting buried
