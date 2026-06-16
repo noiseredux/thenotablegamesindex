@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.1.1</p>
+            <p class="version-tag">Version 6.1.2</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -75,7 +75,10 @@
         // review counts that drags down their confidence weight unfairly.
         // Set above 1.0 to correct for that floor.
         const GENRE_SPORT_ID = 14;
-        const SPORT_MULTIPLIER = 1.0;
+        // v6.1.2: Activated at 1.8x. Sports titles on consoles skew toward audiences
+        // that don't engage with IGDB, causing systematic underrepresentation in
+        // review counts. NBA 2K, FC, Madden all sitting hundreds of places too low.
+        const SPORT_MULTIPLIER = 1.8;
 
         // v6.0.0: Major league sports franchises (Madden, MLB The Show, NHL, NASCAR,
         // etc.) suffer the sports problem more acutely than general sports titles.
@@ -90,7 +93,10 @@
             'ea-sports-college-football',
             'pga-tour-2k'
         ];
-        const MAJOR_LEAGUE_MULTIPLIER = 1.0;
+        // v6.1.2: Activated at 1.4x. Madden/MLB/NHL/NASCAR etc. suffer the sports
+        // problem more acutely than general sports titles — their audiences are even
+        // less represented on IGDB. Stacks on top of SPORT_MULTIPLIER.
+        const MAJOR_LEAGUE_MULTIPLIER = 1.4;
 
         // v6.0.0: Mainstream franchises (COD, etc.) with massive console audiences
         // whose players skew away from IGDB engagement. Gentler correction than the
@@ -100,7 +106,11 @@
             'call-of-duty',
             'madden'
         ];
-        const MAINSTREAM_MULTIPLIER = 1.0;
+        // v6.1.2: Activated at 1.6x. COD/Madden have massive console audiences
+        // whose players skew heavily away from IGDB engagement. COD Black Ops 6
+        // sitting at #41 when it should be #12-15; Madden at #228 when it should
+        // be #20-25. Stacks on top of SPORT_MULTIPLIER for Madden.
+        const MAINSTREAM_MULTIPLIER = 1.6;
 
         // v6.0.0: Nintendo + Sony affiliated publisher boost.
         // This site concentrates on the Nintendo/Sony lineages, so it is intentional
