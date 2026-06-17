@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.6.3</p>
+            <p class="version-tag">Version 5.6.4</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -148,11 +148,13 @@
         // "Sony" anyway (so the publisher check already catches them), but some
         // were also self-publishing or co-publishing in ways that could slip through.
         // This explicit developer list closes that gap.
-        // Notably includes Wolf Team — developer of the earliest Tales games (Tales of
-        // Phantasia, Tales of Destiny) before the studio was absorbed and rebranded as
-        // Namco Tales Studio. Those early titles are part of the same lineage as the
-        // later Namco-published Tales entries even though Wolf Team itself never
-        // carried the Namco name.
+        // Rare is included for its full catalog regardless of era (N64 through Xbox/
+        // Xbox 360), consistent with the original decision to treat the studio as part
+        // of the Nintendo lineage in whole, not just its pre-Microsoft-acquisition years.
+        // Wolf Team (pre-rebrand Namco Tales Studio, developer of the earliest Tales
+        // games) is handled separately under the Namco-specific developer list below,
+        // not here, since it should receive the Namco boost rather than the flat
+        // affiliated rate.
         const AFFILIATED_DEVELOPERS = [
             // Nintendo lineage
             'nintendo',
@@ -200,10 +202,7 @@
             'housemarque',
             'bluepoint games',
             'nixxes software',
-            'bungie',
-
-            // Namco lineage (pre-rebrand)
-            'wolf team'
+            'bungie'
         ];
 
         // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
@@ -217,6 +216,13 @@
         // This also addresses the early PS1 Tekken/Ridge Racer data sparsity problem
         // identified during calibration.
         const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
+        // v5.6.4: Namco developer-side check. Wolf Team developed the earliest Tales
+        // games (Tales of Phantasia, Tales of Destiny) and a range of Sega CD, SNES,
+        // and PS1 titles before being absorbed and rebranded as Namco Tales Studio.
+        // Wolf Team never published its own games, so without this developer check
+        // those early titles would get no Namco treatment at all despite being the
+        // literal predecessor studio to Namco's RPG division.
+        const NAMCO_DEVELOPERS = ['wolf team'];
         const NAMCO_MULTIPLIER = 5.5;
 
         // v5.4.4: Mainstream titles with massive console audiences that generate
@@ -254,10 +260,13 @@
         }
 
         function isNamcoTitle(game) {
-            if (!game.publishers) return false;
-            return game.publishers.some(pub =>
+            const publisherMatch = game.publishers && game.publishers.some(pub =>
                 NAMCO_PUBLISHERS.some(n => pub.toLowerCase().includes(n))
             );
+            const developerMatch = game.developers && game.developers.some(dev =>
+                NAMCO_DEVELOPERS.some(n => dev.toLowerCase().includes(n))
+            );
+            return publisherMatch || developerMatch;
         }
 
         function isAffiliatedPublisher(game) {
