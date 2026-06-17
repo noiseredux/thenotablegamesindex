@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.6.2</p>
+            <p class="version-tag">Version 5.6.3</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -142,6 +142,70 @@
             'bungie'
         ];
 
+        // v5.6.3: Developer-side affiliated check. The publisher list above only
+        // catches a game if an affiliated studio published it. Many second-party
+        // studios develop titles that are published directly under "Nintendo" or
+        // "Sony" anyway (so the publisher check already catches them), but some
+        // were also self-publishing or co-publishing in ways that could slip through.
+        // This explicit developer list closes that gap.
+        // Notably includes Wolf Team — developer of the earliest Tales games (Tales of
+        // Phantasia, Tales of Destiny) before the studio was absorbed and rebranded as
+        // Namco Tales Studio. Those early titles are part of the same lineage as the
+        // later Namco-published Tales entries even though Wolf Team itself never
+        // carried the Namco name.
+        const AFFILIATED_DEVELOPERS = [
+            // Nintendo lineage
+            'nintendo',
+            'hal laboratory',
+            'hal america',
+            'game freak',
+            'monolith soft',
+            'retro studios',
+            'intelligent systems',
+            'creatures inc',
+            'nd cube',
+            'grezzo',
+            'camelot',
+            'alphadream',
+            'brownie brown',
+            '1-up studio',
+            'jupiter corporation',
+            'ambrella',
+            'skip ltd',
+            'rare',
+            'rareware',
+            'hudson soft',
+            'hudson entertainment',
+            'ape inc',
+
+            // Sony lineage
+            'sony',
+            'psygnosis',
+            'studio liverpool',
+            'guerrilla games',
+            'naughty dog',
+            'insomniac games',
+            'sucker punch',
+            'media molecule',
+            'evolution studios',
+            'polyphony digital',
+            'japan studio',
+            'team asobi',
+            'bend studio',
+            'san diego studio',
+            'zipper interactive',
+            'bigbig studios',
+            'ready at dawn',
+            'firesprite',
+            'housemarque',
+            'bluepoint games',
+            'nixxes software',
+            'bungie',
+
+            // Namco lineage (pre-rebrand)
+            'wolf team'
+        ];
+
         // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
         // list. Namco's relationship with Sony is deeper than a typical third party —
         // the PS1 hardware was essentially built around Namco's System 22 arcade board,
@@ -197,10 +261,13 @@
         }
 
         function isAffiliatedPublisher(game) {
-            if (!game.publishers) return false;
-            return game.publishers.some(pub =>
+            const publisherMatch = game.publishers && game.publishers.some(pub =>
                 AFFILIATED_PUBLISHERS.some(aff => pub.toLowerCase().includes(aff))
             );
+            const developerMatch = game.developers && game.developers.some(dev =>
+                AFFILIATED_DEVELOPERS.some(aff => dev.toLowerCase().includes(aff))
+            );
+            return publisherMatch || developerMatch;
         }
 
         function displayGames(gamesList) {
