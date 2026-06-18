@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.6.4</p>
+            <p class="version-tag">Version 5.6.5</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -114,6 +114,23 @@
             'hudson soft',
             'hudson entertainment',
             'ape inc',
+            'tose',
+            'arzest',
+            'syn sophia',
+            'arika',
+            'ganbarion',
+            'genius sonority',
+            'paon',
+            'treasure',
+            'mistwalker',
+            'next level games',
+            'vanpool',
+            'good-feel',
+            'mercurysteam',
+            'koei tecmo',
+            'omega force',
+            'team ninja',
+            'platinumgames',
 
             // Sony lineage
             'sony',
@@ -139,22 +156,43 @@
             'housemarque',
             'bluepoint games',
             'nixxes software',
-            'bungie'
+            'bungie',
+            'arrowhead',
+            'kojima productions',
+            'shift up',
+            'fromsoftware',
+            'sumo digital',
+            'ember lab',
+            'media.vision',
+            'supermassive games',
+            'quantic dream',
+            'clap hanz',
+            'thatgamecompany',
+            'novarama',
+            'relentless software',
+            'game republic',
+            'eurocom',
+            'ballistic moon',
+            'superbot entertainment'
         ];
 
-        // v5.6.3: Developer-side affiliated check. The publisher list above only
-        // catches a game if an affiliated studio published it. Many second-party
-        // studios develop titles that are published directly under "Nintendo" or
-        // "Sony" anyway (so the publisher check already catches them), but some
-        // were also self-publishing or co-publishing in ways that could slip through.
-        // This explicit developer list closes that gap.
+        // v5.6.5: Expanded both affiliated lists with the full Nintendo and PlayStation
+        // second-party rosters, including studios contracted for only select titles
+        // (PlatinumGames, Koei Tecmo/Omega Force/Team Ninja, FromSoftware). Per
+        // deliberate decision, these multiplatform studios' ENTIRE catalogs receive
+        // the boost, not just their Nintendo/Sony-contracted titles — the philosophy
+        // being that a studio's broader body of work (Nier Automata, Elden Ring, Dead
+        // or Alive) is itself part of why Nintendo/Sony sought them out for second-party
+        // work in the first place. The relationship retroactively colors the whole
+        // catalog, the same logic already applied to Bungie and Rare.
         // Rare is included for its full catalog regardless of era (N64 through Xbox/
         // Xbox 360), consistent with the original decision to treat the studio as part
         // of the Nintendo lineage in whole, not just its pre-Microsoft-acquisition years.
         // Wolf Team (pre-rebrand Namco Tales Studio, developer of the earliest Tales
         // games) is handled separately under the Namco-specific developer list below,
         // not here, since it should receive the Namco boost rather than the flat
-        // affiliated rate.
+        // affiliated rate. Bandai Namco Studios itself is excluded from this list
+        // entirely since it's already covered by the separate Namco-specific boost.
         const AFFILIATED_DEVELOPERS = [
             // Nintendo lineage
             'nintendo',
@@ -179,6 +217,23 @@
             'hudson soft',
             'hudson entertainment',
             'ape inc',
+            'tose',
+            'arzest',
+            'syn sophia',
+            'arika',
+            'ganbarion',
+            'genius sonority',
+            'paon',
+            'treasure',
+            'mistwalker',
+            'next level games',
+            'vanpool',
+            'good-feel',
+            'mercurysteam',
+            'koei tecmo',
+            'omega force',
+            'team ninja',
+            'platinumgames',
 
             // Sony lineage
             'sony',
@@ -202,7 +257,24 @@
             'housemarque',
             'bluepoint games',
             'nixxes software',
-            'bungie'
+            'bungie',
+            'arrowhead',
+            'kojima productions',
+            'shift up',
+            'fromsoftware',
+            'sumo digital',
+            'ember lab',
+            'media.vision',
+            'supermassive games',
+            'quantic dream',
+            'clap hanz',
+            'thatgamecompany',
+            'novarama',
+            'relentless software',
+            'game republic',
+            'eurocom',
+            'ballistic moon',
+            'superbot entertainment'
         ];
 
         // v5.4.8: Namco gets its own two-tier boost separate from the general affiliated
