@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.1.7</p>
+            <p class="version-tag">Version 6.1.8</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -214,7 +214,11 @@
         // title (Metroid Prime 4: Beyond, 80.1) purely because Namco's multiplier was
         // larger, regardless of underlying merit. Namco must sit below Affiliated as
         // a structural guarantee, not something that happens to work out per game.
-        const NAMCO_MULTIPLIER = 1.4;
+        // v6.1.8: Raised to 1.45x. Closer to Affiliated's 1.5x to reflect Namco's
+        // strong Sony partnership, while deliberately staying just below it so the
+        // tier-ordering guarantee from v6.1.6 holds — Namco can approach but not
+        // tie or exceed core first-party in any head-to-head.
+        const NAMCO_MULTIPLIER = 1.45;
 
         // v6.1.5: Critical darling bump. Genuinely exceptional non-affiliated titles
         // (Metaphor: ReFantazio, Clair Obscur: Expedition 33) were getting buried
