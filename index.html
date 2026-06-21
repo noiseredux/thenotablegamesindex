@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.2.1</p>
+            <p class="version-tag">Version 6.2.2</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -239,7 +239,22 @@
         // territories. Namco was never owned by Sony, so it sits in its own tier:
         // above general third parties but handled separately from core first-party.
         // When active, effective total = AFFILIATED × NAMCO.
-        const NAMCO_PUBLISHERS = ['namco', 'bandai namco'];
+        // v6.2.2: Added 'bandai' (pre-2005 merger, solo publishing credit) to this
+        // tier. Bandai's WonderSwan (1999) connected to PS1 via the WonderWave
+        // accessory, linking to Sony's PocketStation peripheral — and with Sony
+        // having no portable of its own until PSP in 2004, WonderSwan functioned
+        // as the de facto "PlayStation portable" in Japan during that window.
+        // WonderSwan's third-party roster (Squaresoft, Namco, Capcom, Banpresto)
+        // overlaps heavily with PS1's own core lineup, reinforcing the ecosystem
+        // tie. Since Bandai and Namco are now one company, treating Bandai's full
+        // publishing lineage (NES/SNES/WonderSwan/PS1/PS2-era solo credits) under
+        // the same tier as Namco follows the same logic already applied to Namco's
+        // full catalog rather than just its PS1-era titles. Unlike Namco, Bandai's
+        // catalog includes a large volume of licensed anime/toy tie-in software of
+        // variable quality — the review-count minimum threshold is expected to
+        // filter most of that out naturally, but this is flagged as worth
+        // monitoring across NES/SNES/WonderSwan-era audits.
+        const NAMCO_PUBLISHERS = ['namco', 'bandai namco', 'bandai'];
         // v6.1.0: Activated at 1.3x (effective total with affiliated: 1.95x).
         // v6.1.1: Raised to 1.6x (effective total with affiliated: 2.4x) after
         // calibration against 2026 data showed Namco titles (e.g. Directive 8020)
