@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.2.0</p>
+            <p class="version-tag">Version 6.2.1</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -460,17 +460,19 @@
                 return;
             }
 
-            // v6.2.0: Display-only normalization. Each year is graded on its own
-            // curve — the #1 game for that year is anchored to 100%, and every
-            // other game's displayed score is its percentage of that top score.
-            // This does NOT affect game.final_score, which remains the raw
-            // confidence-weighted composite used for sorting. Scores are therefore
-            // only meaningful within a single year, never compared across years —
-            // a small 1985 pool and a massive 2025 pool are different microcosms,
-            // not points on the same absolute scale.
-            const topScore = filtered[0].final_score;
+            // v6.2.1: Replaced per-year normalization (v6.2.0) with an absolute,
+            // capped display score. The "#1 = 100%" curve was mathematically sound
+            // but semantically misleading — a genuinely great game (Mina the
+            // Hollower) landing at 63% read as "mediocre" rather than "outscored
+            // by something exceptional that same year." Scores now reflect honest,
+            // absolute quality: the raw confidence-weighted composite (which is
+            // already constructed on a roughly 0-100 scale), clamped at 100 so
+            // multiplier stacking can't push a number past the ceiling. This means
+            // #1 won't always literally read 100, and is intentionally no longer
+            // comparable in the "best of an era" sense across years the way v6.2.0
+            // was — it trades that framing for scores that mean what they say.
             filtered.forEach(game => {
-                game.display_score = topScore > 0 ? (game.final_score / topScore) * 100 : 0;
+                game.display_score = Math.min(game.final_score, 100);
             });
 
             const grid = document.createElement('div');
