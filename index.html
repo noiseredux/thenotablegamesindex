@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.2.2</p>
+            <p class="version-tag">Version 6.2.3</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -411,6 +411,58 @@
                     game.aggregated_rating = null;
                     game.aggregated_rating_count = 0;
                 }
+            });
+
+            // v6.2.3: Same-year duplicate/edition suppression. Re-releases like
+            // "Bloodborne: Game of the Year Edition" or "Dark Souls II: Scholar of
+            // the First Sin" were cluttering single years with multiple entries of
+            // the same underlying game. Deliberately narrow and low-risk by design:
+            // an edition/remaster-keyword entry is only dropped if a PLAIN
+            // (non-keyword) version of the same stripped name is also present in
+            // the same year's results — that plain entry always wins. Nothing is
+            // ever hidden unless its plain original is visibly sitting in the same
+            // dataset, so a legitimate standalone game (e.g. Tetris on Game Boy,
+            // which has no in-year twin) is never at risk of being dropped just for
+            // matching a keyword. If multiple edition-keyword entries match each
+            // other but no plain original exists, none are dropped — we don't try
+            // to guess which labeled edition is "more canonical." Intentionally
+            // does NOT address cross-year duplicates (e.g. a 2025 Switch 2 Edition
+            // of a 2017 original) — that's a larger, riskier problem deferred for now.
+            const EDITION_KEYWORDS = [
+                'game of the year edition', 'goty edition', ' goty',
+                'definitive edition', 'remastered', 'remaster',
+                'enhanced edition', 'complete edition', 'ultimate edition',
+                'directors cut', "director's cut", 'redux',
+                'anniversary edition', 'hd edition', ' hd ',
+                'scholar of the first sin'
+            ];
+
+            function stripEditionSuffix(name) {
+                let stripped = name.toLowerCase();
+                EDITION_KEYWORDS.forEach(kw => { stripped = stripped.split(kw).join(''); });
+                // Strip trailing separators left behind (": ", " - ", etc.)
+                return stripped.replace(/[:\-–]\s*$/, '').trim();
+            }
+
+            filtered = filtered.filter(game => {
+                const lowerName = game.name.toLowerCase();
+                const matchesEditionKeyword = EDITION_KEYWORDS.some(kw => lowerName.includes(kw));
+                if (!matchesEditionKeyword) return true;
+
+                const strippedName = stripEditionSuffix(game.name);
+                // Does a plain (non-edition-keyword) entry with the same stripped
+                // name exist elsewhere in this year's results? If so, that one
+                // wins and this edition/remaster entry is dropped. If only other
+                // edition-keyword entries match (no plain original present), this
+                // entry is left alone — we don't guess which one is "more
+                // canonical" among multiple editions, only prefer a plain title
+                // over a labeled one.
+                const hasPlainOriginal = filtered.some(other =>
+                    other !== game &&
+                    stripEditionSuffix(other.name) === strippedName &&
+                    !EDITION_KEYWORDS.some(kw => other.name.toLowerCase().includes(kw))
+                );
+                return !hasPlainOriginal;
             });
 
             // Determine max combined review count for confidence normalisation
