@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 6.2.4</p>
+            <p class="version-tag">Version 6.2.5</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -389,20 +389,14 @@
             let filtered = gamesList.filter(game => {
                 const allowedOnGame = game.platforms.filter(id => ALLOWED_PLATFORMS.includes(id));
                 const isCorrectPlatform = allowedOnGame.length > 0;
-                // v6.2.4: Relaxed iOS-only exclusion. Previously banned all iOS-only
-                // titles outright (added in v6.1.4 to remove Gakuen Idolmaster from
-                // 2025's top 10). That was too broad — genuinely notable mobile titles
-                // like Pokémon GO and Super Mario Run received substantial critic
-                // coverage and shouldn't be excluded just for being iOS-only. New rule:
-                // exclude iOS-only titles that have ZERO critic reviews. Any mobile
-                // game that earned critic attention is treated as legitimate; those
-                // with no critic coverage at all are filtered out as app-store noise.
-                // Gakuen Idolmaster (3 critic reviews) would now be caught by the
-                // separate MIN_CRITIC_REVIEWS = 5 threshold instead.
-                const isIOSOnly = allowedOnGame.length === 1 && allowedOnGame[0] === 39;
-                const hasNoCriticReviews = (game.aggregated_rating_count || 0) === 0;
+                // v6.2.5: Removed iOS-only exclusion entirely. The MIN_CRITIC_REVIEWS
+                // threshold (5) already handles app-store noise naturally — any mobile
+                // title without meaningful critic coverage won't pass that bar anyway.
+                // The blanket iOS ban (v6.1.4) and the critic-gated refinement (v6.2.4)
+                // were both too aggressive, blocking legitimate titles like Pokémon GO
+                // (486 user ratings, 11 critic ratings) that clearly deserve inclusion.
                 const isBlacklistedCategory = game.category && BLACKLISTED_CATEGORIES.includes(game.category);
-                return isCorrectPlatform && !(isIOSOnly && hasNoCriticReviews) && !isBlacklistedCategory;
+                return isCorrectPlatform && !isBlacklistedCategory;
             });
 
             // Minimum combined review threshold
