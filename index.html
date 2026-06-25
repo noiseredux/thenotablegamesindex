@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.6.8</p>
+            <p class="version-tag">Version 5.6.9</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -86,15 +86,22 @@
         const WS_PLATFORM_IDS = [57, 123];
         const WS_MULTIPLIER = 20.0;
 
-        // Controversy keyword: High-profile controversies generate enormous cultural
-        // hype regardless of game quality. Night Trap, Mortal Kombat etc were
-        // congressional hearing material — that's real mindshare.
-        const CONTROVERSY_MULTIPLIER = 22.0;
+        // v5.6.9: Controversy and development-hell keyword boosts removed.
+        // The controversy tag proved too broad — catching games like Hatred (2015)
+        // alongside Night Trap, and pushing Star Wars Battlefront II above BotW in 2017.
+        // Night Trap's real-world hype is now addressed through the Digital Pictures
+        // developer boost below, which is historically accurate and surgically scoped.
 
-        // Development hell keyword: Games that spent years in development limbo
-        // accumulate enormous anticipation and cultural conversation before release.
-        // Duke Nukem Forever is the archetype — everyone knew about it.
-        const DEVELOPMENT_HELL_MULTIPLIER = 1.75;
+        // Digital Pictures developer boost. Digital Pictures was effectively Sony-founded:
+        // Sony USA chairman Mickey Schulhof struck the original deal with Tom Zito that
+        // led to the company's incorporation, intending their FMV games (Night Trap,
+        // Sewer Shark) for the failed Nintendo/Sony CD-ROM prototype. When that deal
+        // collapsed, Sony Imagesoft went on to publish Sewer Shark on Sega CD.
+        // These games have near-zero IGDB engagement despite enormous 1992-1994
+        // cultural footprint as the center of congressional hearings and the reason
+        // the ESRB exists. Same multiplier as the planned controversy boost.
+        const DIGITAL_PICTURES_DEVELOPERS = ['digital pictures'];
+        const DIGITAL_PICTURES_MULTIPLIER = 22.0;
 
         // v5.3.0: Major league sports titles receive an additional boost on top of
         // the standard SPORT_MULTIPLIER. These franchises have massive console-first
@@ -409,6 +416,13 @@
             return game.platforms.some(p => WS_PLATFORM_IDS.includes(p));
         }
 
+        function isDigitalPicturesTitle(game) {
+            if (!game.developers) return false;
+            return game.developers.some(dev =>
+                DIGITAL_PICTURES_DEVELOPERS.some(d => dev.toLowerCase().includes(d))
+            );
+        }
+
         function displayGames(gamesList) {
             const content = document.getElementById('content');
 
@@ -478,17 +492,12 @@
                     score = Math.round(score * WS_MULTIPLIER);
                 }
 
-                // v5.6.8: Controversy keyword boost — congressional hearing material.
-                // Night Trap, Mortal Kombat etc generated enormous cultural mindshare
-                // regardless of quality or reception.
-                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('controversy'))) {
-                    score = Math.round(score * CONTROVERSY_MULTIPLIER);
-                }
-
-                // v5.6.8: Development hell keyword boost — years of anticipation and
-                // magazine coverage accumulate real cultural hype before release.
-                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('development-hell'))) {
-                    score = Math.round(score * DEVELOPMENT_HELL_MULTIPLIER);
+                // v5.6.9: Digital Pictures developer boost. Sony-founded FMV studio
+                // whose games (Night Trap, Sewer Shark) were at the center of 1992-1994
+                // congressional hearings and directly caused the creation of the ESRB.
+                // Enormous real-world cultural footprint, near-zero IGDB engagement.
+                if (isDigitalPicturesTitle(game)) {
+                    score = Math.round(score * DIGITAL_PICTURES_MULTIPLIER);
                 }
 
                 game.hype_score = score;
