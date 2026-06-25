@@ -37,7 +37,7 @@
     <div class="container">
         <header>
             <h1>The Notable Games Index</h1>
-            <p class="version-tag">Version 5.6.7</p>
+            <p class="version-tag">Version 5.6.8</p>
         </header>
         <div class="controls">
             <label>Select Year:</label>
@@ -61,6 +61,40 @@
         const SPORT_MULTIPLIER = 2.5;
         const AFFILIATED_MULTIPLIER = 3.75;
         const AWARD_MULTIPLIER = 1.2;
+
+        // v5.6.8: Failure/underrepresentation corrections.
+        // These boost titles whose real-world cultural footprint vastly exceeds their
+        // IGDB engagement, either due to platform sparsity, regional bias, or the
+        // fact that controversy and notoriety generate hype even without positive reception.
+
+        // CDi Nintendo titles: Zelda and Mario games on CDi were massive gaming news
+        // in 1993-1994 despite poor quality. CD-ROM Zelda was mind-blowing concept.
+        // Raw IGDB data is near-zero; 15x needed to reach rational placement.
+        const CDI_PLATFORM_ID = 117;
+        const CDI_NINTENDO_SLUGS = ['zelda', 'mario'];
+        const CDI_MULTIPLIER = 15.0;
+
+        // Virtual Boy: Huge marketing spend, Nintendo Power coverage, Blockbuster
+        // promotions. A loud expensive failure that every 1995 Nintendo kid knew about.
+        // Platform boost applies to entire VB library (platform 87).
+        const VB_PLATFORM_ID = 87;
+        const VB_MULTIPLIER = 4.0;
+
+        // WonderSwan/WSC: Japanese-market success with Nintendo DNA (Gunpei Yokoi),
+        // Sony link cable, Namco/Bandai hardware. IGDB Western bias makes data
+        // near-zero for most titles. Aggressive correction needed.
+        const WS_PLATFORM_IDS = [57, 123];
+        const WS_MULTIPLIER = 20.0;
+
+        // Controversy keyword: High-profile controversies generate enormous cultural
+        // hype regardless of game quality. Night Trap, Mortal Kombat etc were
+        // congressional hearing material — that's real mindshare.
+        const CONTROVERSY_MULTIPLIER = 22.0;
+
+        // Development hell keyword: Games that spent years in development limbo
+        // accumulate enormous anticipation and cultural conversation before release.
+        // Duke Nukem Forever is the archetype — everyone knew about it.
+        const DEVELOPMENT_HELL_MULTIPLIER = 1.75;
 
         // v5.3.0: Major league sports titles receive an additional boost on top of
         // the standard SPORT_MULTIPLIER. These franchises have massive console-first
@@ -359,6 +393,22 @@
             return publisherMatch || developerMatch;
         }
 
+        function isCDiNintendoTitle(game) {
+            if (!game.platforms || !game.slug) return false;
+            return game.platforms.includes(CDI_PLATFORM_ID) &&
+                CDI_NINTENDO_SLUGS.some(s => game.slug.includes(s));
+        }
+
+        function isVirtualBoyTitle(game) {
+            if (!game.platforms) return false;
+            return game.platforms.includes(VB_PLATFORM_ID);
+        }
+
+        function isWonderSwanTitle(game) {
+            if (!game.platforms) return false;
+            return game.platforms.some(p => WS_PLATFORM_IDS.includes(p));
+        }
+
         function displayGames(gamesList) {
             const content = document.getElementById('content');
 
@@ -408,6 +458,37 @@
                 // Award keyword boost
                 if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('award'))) {
                     score = Math.round(score * AWARD_MULTIPLIER);
+                }
+
+                // v5.6.8: CDi Nintendo title boost — Zelda/Mario CDi games were
+                // massive cultural moments despite poor quality and near-zero IGDB data.
+                if (isCDiNintendoTitle(game)) {
+                    score = Math.round(score * CDI_MULTIPLIER);
+                }
+
+                // v5.6.8: Virtual Boy platform boost — loud, expensive, heavily marketed
+                // failure. Every 1995 Nintendo kid knew about this hardware.
+                if (isVirtualBoyTitle(game)) {
+                    score = Math.round(score * VB_MULTIPLIER);
+                }
+
+                // v5.6.8: WonderSwan/WSC platform boost — genuine Japanese success with
+                // Nintendo/Sony/Namco DNA. IGDB's Western bias makes data near-zero.
+                if (isWonderSwanTitle(game)) {
+                    score = Math.round(score * WS_MULTIPLIER);
+                }
+
+                // v5.6.8: Controversy keyword boost — congressional hearing material.
+                // Night Trap, Mortal Kombat etc generated enormous cultural mindshare
+                // regardless of quality or reception.
+                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('controversy'))) {
+                    score = Math.round(score * CONTROVERSY_MULTIPLIER);
+                }
+
+                // v5.6.8: Development hell keyword boost — years of anticipation and
+                // magazine coverage accumulate real cultural hype before release.
+                if (game.keywords && game.keywords.some(k => k.toLowerCase().includes('development-hell'))) {
+                    score = Math.round(score * DEVELOPMENT_HELL_MULTIPLIER);
                 }
 
                 game.hype_score = score;
